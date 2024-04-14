@@ -11,7 +11,7 @@ wss.on('connection', function connection(ws, req) {
   
   ws.on('error', console.error);
 
-  ws.on('message', function message(data) {
+  ws.on('rpc', function message(data) {
     console.log('received: %s', data);
   });
 
