@@ -1,21 +1,9 @@
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
 
-const server = createServer();
-const wss = new WebSocketServer({ server });
+import mkrpc from './json-rpc-ws';
 
-wss.on('connection', function connection(ws, req) {
-
-  console.log('connected');
-  console.log('request', req.headers);
-  
-  ws.on('error', console.error);
-
-  ws.on('message', function message(data) {
-    console.log('received: %s', data);
-  });
-
-  ws.send(JSON.stringify({"id":68,"method":"Config.Get","params":{}}));
-});
-
-server.listen(8080);
+const rpc = mkrpc();
+rpc.call({"id":68,"method":"Config.Get","params":{}}).then(function(result) {
+  console.log('Result:', result);
+}).catch(function(err) {
+  console.log('Error:', err);
+} )
