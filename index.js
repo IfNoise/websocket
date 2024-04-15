@@ -15,7 +15,7 @@ wss.on('connection', function connection(ws, req) {
     console.log('received: %s', data);
   });
 
-  ws.send('something');
+  ws.send('{"id":68,"method":"Config.Get","params":{}}');
 });
 
 server.listen(8080);
