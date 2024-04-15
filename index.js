@@ -11,7 +11,7 @@ wss.on('connection', function connection(ws, req) {
   
   ws.on('error', console.error);
 
-  ws.on('', function message(data) {
+  ws.on('/', function message(data) {
     console.log('received: %s', data);
   });
 
