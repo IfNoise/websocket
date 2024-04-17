@@ -34,7 +34,7 @@ const mkrpc = function() {
     },
   };
 
-  var reconnect = function() {
+  var start = function() {
     // console.log('Opening WS connection to', url);
     const server = createServer();
     const wss = new WebSocketServer({ server });
@@ -48,7 +48,6 @@ const mkrpc = function() {
     ws.onclose = function(ev) {
       // console.log('Closed WS connection to', url);
       engine.onclose();
-      if (reconn) setTimeout(reconnect, 1000);
     };
     ws.onerror = function(ev) {
       console.log('WS connection error:', ev);
@@ -62,7 +61,7 @@ const mkrpc = function() {
     };
   server.listen(8080);
   })};
-  reconnect();
+  start();
 
   return engine;
 };
