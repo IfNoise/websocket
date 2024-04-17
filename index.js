@@ -7,15 +7,11 @@ rpc.onopen = function() {
   
 };
 setTimeout(function() {
-  rpc.call({"id":68,"method":"Config.Get","params":{}}).then(function(result) {
+
+  rpc.call({"id":68,"method":"Config.Get","params":{}},5000).then(function(result) {
     console.log('Result:', result);
   }).catch(function(err) {
     console.log('Error:', err);
   } )
   
 }, 5000);
-rpc.call({"id":68,"method":"Config.Get","params":{}}).then(function(result) {
-  console.log('Result:', result);
-}).catch(function(err) {
-  console.log('Error:', err);
-} )
