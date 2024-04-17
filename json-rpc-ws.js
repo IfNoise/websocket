@@ -1,8 +1,9 @@
+import { WebSocketServer } from "ws";
 import WebSocket from "ws";
-
+import { createServer } from "http";
 
 const mkrpc = function() {
-  var id = 1, reconn = true, calls = {}, defaultTimeoutMs = 3000, ws;
+  var id = 1, reconn = true, calls = {}, defaultTimeoutMs = 3000, ws=null;
   var engine = {
     onopen: function() {},   // Called when WS connection is established
     onclose: function() {},  // Called when WS connection is closed
@@ -10,7 +11,7 @@ const mkrpc = function() {
     onout: function() {},    // Called on each outgoing frame
     send: function(frame) {  // Send notification to the server
       engine.onout(frame);
-      ws.send(JSON.stringify(frame));
+      ws?.send(JSON.stringify(frame));
     },
     close: function() {  // Close and stop reconnecting
       reconn = false;
@@ -22,7 +23,7 @@ const mkrpc = function() {
         // console.log('Sent:', JSON.stringify(frame));
         calls[frame.id] = resolve;
         engine.onout(frame);
-        ws.send(JSON.stringify(frame));
+        ws?.send(JSON.stringify(frame));
         setTimeout(function() {
           if (calls[frame.id]) {
             reject('RPC call timeout' + JSON.stringify(frame));
@@ -37,8 +38,9 @@ const mkrpc = function() {
     // console.log('Opening WS connection to', url);
     const server = createServer();
     const wss = new WebSocketServer({ server });
-    wss.on('connection', function connection(ws, req) {
-    ws = new WebSocket(url);
+    wss.on('connection', function connection(w, req) {
+    ws =w
+    console.log('Connected',req.headers);
     ws.onopen = function(ev) {
       // console.log('Established WS connection to', url);
       engine.onopen();
