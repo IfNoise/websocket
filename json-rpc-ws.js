@@ -42,7 +42,7 @@ const mkrpc = function() {
     ws =w
     console.log('Connected',req.headers);
     ws.onopen = function(ev) {
-      // console.log('Established WS connection to', url);
+      
       engine.onopen();
     };
     ws.onclose = function(ev) {
