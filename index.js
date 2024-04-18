@@ -7,7 +7,7 @@ const wss = new WebSocketServer({ server });
 wss.on('connection', function connection(ws, req) {
 
   console.log('connected');
-  console.log('request', req);
+  console.log('request', req.socket.remoteAddress);
   
   ws.on('error', console.error);
 

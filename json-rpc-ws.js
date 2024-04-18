@@ -70,8 +70,11 @@ class JSONRPCws{
   constructor(){
     this.wss = new WebSocketServer({port:8080});
     this.devices=[]
-    this.wss.on('connection',function connection(ws,req){``
-        devices.push({ws:ws,deviceName:""})
+    this.wss.on('connection',function connection(ws,req){
+      this.devices.push({ws:ws,status:'connected'})
+      ws.on('message',function incoming(message){})
+
+        
     });
   }
   call(method, params, timeoutMilli){
