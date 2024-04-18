@@ -1,7 +1,7 @@
 import { WebSocketServer } from "ws";
 import WebSocket from "ws";
 import { createServer } from "http";
-
+/* 
 const mkrpc = function() {
   var id = 1, reconn = true, calls = {}, defaultTimeoutMs = 3000, ws=null;
   var engine = {
@@ -32,8 +32,8 @@ const mkrpc = function() {
         }, timeoutMilli || defaultTimeoutMs);
       });
     },
-  };
-
+  }; */
+/* 
   var start = function() {
     // console.log('Opening WS connection to', url);
     const server = createServer();
@@ -64,5 +64,19 @@ const mkrpc = function() {
   start();
 
   return engine;
-};
+}; */
+
+class JSONRPCws{
+  constructor(){
+    this.wss = new WebSocketServer({port:8080});
+    this.devices=[]
+    this.wss.on('connection',function connection(ws,req){``
+        devices.push({ws:ws,deviceName:""})
+    });
+  }
+  call(method, params, timeoutMilli){
+
+  }
+
+}
 export default mkrpc
