@@ -3,7 +3,9 @@ import { WebSocketServer } from "ws";
 
 class JSONRPCws {
   constructor(port=8080, ondevice=null) {
-    this.wss = new WebSocketServer({ port });
+    this.wss = new WebSocketServer({ port }, () => {
+      console.log("JSONRPCws listening on", port);
+    });
     this.devices = [];
     this.ondevice = ondevice
     this.wss.on("connection", function connection(ws, req) {
