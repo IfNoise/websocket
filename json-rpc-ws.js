@@ -9,6 +9,7 @@ class JSONRPCws {
     this.devices = [];
     this.ondevice = ondevice
     this.wss.on("connection", function connection(ws, req) {
+      console.log("connected");
       const device = {
         ws: ws,
         id: 1,
