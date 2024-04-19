@@ -7,6 +7,7 @@ class JSONRPCws {
       console.log("JSONRPCws listening ");
     });
     this.ondevice = ondevice   
+    console.log("JSONRPCws created", this);
   }
   devices=[];
   start(){
