@@ -15,7 +15,7 @@ class JSONRPCws {
         id: 1,
         defaultTimeoutMs: 3000,
         status: "connected",
-        address: req.headers["x-forwarded-for"],
+        address: req.socket.remoteAddress,
         calls: {},
         call: function (method, params, timeoutMilli) {
           return new Promise(function (resolve, reject) {
