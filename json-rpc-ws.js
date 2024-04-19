@@ -41,7 +41,7 @@ class JSONRPCws {
       device.ws.on("close", () => {
         device.status = "offline";
       });
-      this.devices.push(device);
+      this.devices=[...this.devices,device];
       if (this.ondevice) this.ondevice(device);
     });
   }
