@@ -6,7 +6,7 @@ class JSONRPCws {
     this.wss = new WebSocketServer({ port }, () => {
       console.log("JSONRPCws listening ");
     });
-    this.devices = [];
+    this.devices=new Array();
     this.ondevice = ondevice
     this.wss.on("connection", function connection(ws, req) {
       console.log("connected");
