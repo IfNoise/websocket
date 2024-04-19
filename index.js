@@ -28,5 +28,6 @@ const jsonrpc = new JSONRPCws(8080,(device) => {
   });
 }  
 );
+console.log(jsonrpc.getDevices());
 
 
