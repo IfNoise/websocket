@@ -21,7 +21,7 @@ wss.on('connection', function connection(ws, req) {
 server.listen(8080); */
 import JSONRPCws from "./json-rpc-ws.js "
 
-const jsonrpc = new JSONRPCws((device) => {
+const jsonrpc = new JSONRPCws(8080,(device) => {
   console.log("Device connected", device);
   device.call("Config.Get", {}).then((result) => {
     console.log("Config.Get result", result);
