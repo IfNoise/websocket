@@ -19,7 +19,7 @@ wss.on('connection', function connection(ws, req) {
 });
 
 server.listen(8080); */
-import JSONRPCws from "./json-rpc-ws";
+import JSONRPCws from "./json-rpc-ws.js "
 
 const jsonrpc = new JSONRPCws((device) => {
   console.log("Device connected", device);

@@ -1,12 +1,11 @@
 import { WebSocketServer } from "ws";
-import WebSocket from "ws";
 
 
 class JSONRPCws {
   constructor(port=8080, ondevice=null) {
     this.wss = new WebSocketServer({ port });
     this.devices = [];
-    this.ondevice = null
+    this.ondevice = ondevice
     this.wss.on("connection", function connection(ws, req) {
       const device = {
         ws: ws,
@@ -46,4 +45,5 @@ class JSONRPCws {
   getDevices(){return this.devices};
 
 }
-export default JSONRPCws;
+
+export default JSONRPCws
