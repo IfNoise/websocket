@@ -39,8 +39,8 @@ function JSONRPCws(port = 8080, ondevice = null) {
             },
           };
           device.ws.on("message", function incoming(message) {
-            console.log("Rcvd:", message);
             var frame = JSON.parse(message);
+           console.log('Received:', JSON.stringify(frame));
             if (device.calls[frame.id]) device.calls[frame.id](frame); // Resolve call promise
             delete device.calls[frame.id];
           });
