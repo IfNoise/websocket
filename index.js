@@ -15,7 +15,7 @@ app.get("/devices", (req, res) => {
   const devices = jsonrpc.getDevices();
   res.json(devices.map((device) => {
     return {
-      id: device.config.device.id,
+      //id: device.config.device.id,
       address: device.address,
       status: device.status,
       config: device.config,
