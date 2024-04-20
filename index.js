@@ -13,9 +13,12 @@ const jsonrpc = JSONRPCws(8080,(device) => {
 );
 app.get("/devices", (req, res) => {
   const devices = jsonrpc.getDevices();
+  if (!devices) {
+    return res.status(404).send("No devices found");
+  }
   res.json(devices.map((device) => {
     return {
-      //id: device.config.device.id,
+      id: device?.config.device.id,
       address: device.address,
       status: device.status,
       config: device.config,
