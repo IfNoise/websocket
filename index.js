@@ -14,7 +14,12 @@ const jsonrpc = JSONRPCws(8080,(device) => {
 app.get("/devices", (req, res) => {
   const devices = jsonrpc.getDevices();
   res.json(devices.map((device) => {
-    device.ws = null;
+    return {
+      id: device.config.device.id,
+      address: device.address,
+      status: device.status,
+      config: device.config,
+    };
   }))
 
 });
