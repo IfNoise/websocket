@@ -12,7 +12,11 @@ const jsonrpc = JSONRPCws(8080,(device) => {
 }  
 );
 app.get("/devices", (req, res) => {
-  res.json(jsonrpc.getDevices());
+  const devices = jsonrpc.getDevices();
+  res.json(devices.map((device) => {
+    device.ws = null;
+  }))
+
 });
 jsonrpc.start();
 app.listen(3000, () => {
