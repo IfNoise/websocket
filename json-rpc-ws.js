@@ -40,7 +40,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
           };
           device.ws.on("message", function incoming(message) {
             var frame = JSON.parse(message);
-           console.log('Received:', JSON.stringify(frame));
+           console.log('Received:', frame);
             if (device.calls[frame.id]) device.calls[frame.id](frame); // Resolve call promise
             delete device.calls[frame.id];
           });
