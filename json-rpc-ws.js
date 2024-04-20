@@ -29,6 +29,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
           console.log("connected");
           const device = {
             ws: ws,
+            config: {},
             id: 1,
             status: "connected",
             address: req.socket.remoteAddress,
@@ -47,6 +48,9 @@ function JSONRPCws(port = 8080, ondevice = null) {
             device.status = "offline";
           });
           console.log("Device connected", device);
+          device.call("Config.Get", {}).then((result) => {
+            device.config = result;
+          });
           addDevice(device);
           if (ondevice) ondevice(device);
         });
