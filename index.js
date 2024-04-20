@@ -16,9 +16,9 @@ app.get("/devices", (req, res) => {
   if (!devices) {
     return res.status(404).send("No devices found");
   }
-  res.json(devices.map((device) => {
+  res.json(devices.map((device,i) => {
     return {
-      id: device?.config.device.id,
+      id: device?.config?.device?.id||i,
       address: device.address,
       status: device.status,
       config: device.config,
