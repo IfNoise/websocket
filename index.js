@@ -25,8 +25,9 @@ const jsonrpc = JSONRPCws(8080,(device) => {
   console.log("Device connected", device);
   device.call("Config.Get", {}).then((result) => {
     console.log("Config.Get result", result);
-    console.log( jsonrpc.getDevices())
+    
   });
+  console.log( jsonrpc.getDevices())
 }  
 );
 jsonrpc.start();
