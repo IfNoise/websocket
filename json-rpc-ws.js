@@ -48,7 +48,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
           });
           console.log("Device connected", device);
           addDevice(device);
-          if (this.ondevice) this.ondevice(device);
+          if (ondevice) ondevice(device);
         });
       },
       getDevices: () => {
