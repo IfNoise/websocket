@@ -50,7 +50,7 @@ app.post("/setconfig", (req, res) => {
   }
   const device=jsonrpc
     .getDevices()
-    .filter((device) => device.deviceId === deviceId)
+    .filter((device) => device.deviceId === deviceId)[0]
     console.log("Device",device);
     device.call("Config.Set", params,2000)
     .then((result) => {
