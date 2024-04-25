@@ -1,7 +1,7 @@
 import JSONRPCws from "./json-rpc-ws.js ";
 import express from "express";
 import cors from "cors";
-import { bodyParser } from "body-parser";
+import  bodyParser  from "body-parser";
 const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
