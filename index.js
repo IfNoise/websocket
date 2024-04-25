@@ -51,6 +51,7 @@ app.post("/setconfig", (req, res) => {
   const device=jsonrpc
     .getDevices()
     .filter((device) => device.deviceId === deviceId)
+    console.log("Device",device);
     device.call("Config.Set", params)
     .then((result) => {
       if(result.error)res.json(result);
