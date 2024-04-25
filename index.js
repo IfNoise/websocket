@@ -28,7 +28,6 @@ app.get("/devices", (req, res) => {
   );
 });
 app.post("/call", (req, res) => {
-  console.log("Call request", req.body);
   const { device, method, params } = req.body;
 
   if (!device || !method) {
@@ -46,7 +45,6 @@ app.post("/call", (req, res) => {
     });
 });
 app.post("/setconfig", (req, res) => {
-  console.log("Set config request", req.body);
   const { deviceId,reboot,params } = req.body;
   if (!deviceId || !params) {
     return res.status(400).send("Invalid request");
@@ -54,7 +52,6 @@ app.post("/setconfig", (req, res) => {
   const device=jsonrpc
     .getDevices()
     .filter((device) => device.deviceId === deviceId)[0]
-    console.log("Device",device);
     device.call("Config.Set", {config:params},2000)
     .then((result) => {
       if(result.error)res.json(result);
