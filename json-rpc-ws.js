@@ -31,6 +31,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
             ws: ws,
             config: {},
             id: 1,
+            deviceId: '',
             status: "connected",
             address: req.socket.remoteAddress,
             calls: {},
@@ -50,6 +51,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
           console.log("Device connected", device);
           device.call("Config.Get", {}).then((result) => {
             device.config = result.result;
+            device.deviceId = device.config.device.id;
           });
           addDevice(device);
           if (ondevice) ondevice(device);
