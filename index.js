@@ -45,7 +45,7 @@ app.post("/call", (req, res) => {
 });
 app.post("/setconfig", (req, res) => {
   const { deviceId,reboot,params } = req.body;
-  if (!deviceId || !params||!reboot) {
+  if (!deviceId || !params) {
     return res.status(400).send("Invalid request");
   }
   const device=jsonrpc

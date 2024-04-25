@@ -18,7 +18,7 @@ export const deviceApi = createApi({
       query: () => ({
         url: "devices",
       }),
-     // providesTags:['State'],
+      providesTags:['Config','State'],
     }),
     call: build.mutation({
       query(body) {
@@ -28,9 +28,19 @@ export const deviceApi = createApi({
           body
         }
       },
-      //invalidatesTags: ['State'],
+      invalidatesTags: ['State'],
+    }),
+    setConfig: build.mutation({
+      query(body) {
+        return {
+          url: `setconfig`,
+          method: 'POST',
+          body
+        }
+      },
+      invalidatesTags: ['Config','State'],
     }),
   }),
 });
 
-export const { useGetDevicesQuery,useCallMutation, refetch } = deviceApi;
+export const { useGetDevicesQuery,useCallMutation,useSetConfigMutation, refetch } = deviceApi;

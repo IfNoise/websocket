@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import OnlinePredictionIcon from '@mui/icons-material/OnlinePrediction';
 import ErrorIcon from '@mui/icons-material/Error';
 import DeviceSettingsList from "./DeviceSettingsList/DeviceSettingsList";
-import { useCallMutation } from "../store/deviceApi";
+import { useSetConfigMutation } from "../store/deviceApi";
 
 const Status=({status})=>{
  switch(status){ 
@@ -22,12 +22,15 @@ Status.propTypes={
 }
 
 const DeviceCard = ({ device }) => {
-  const[call]=useCallMutation()
+  const[setConfig]=useSetConfigMutation();
   const {id, address, status} = device;
   const config = {...device.config};
-  const saveChanges=(changes)=>{
+  const saveChanges=(changes,reboot)=>{
     console.log("Saving changes", changes);
-    call({id, method:"Config.Set", params:changes});
+    setConfig({deviceId:id, reboot:reboot||false, params:changes})
+    // .then((result)=>{
+    //   console.log("Config update result", result);
+    // });
   }
   return (
     <Card>

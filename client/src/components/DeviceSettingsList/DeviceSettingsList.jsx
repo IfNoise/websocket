@@ -205,7 +205,8 @@ ChapterField.propTypes = {
 };
 const DeviceSettingsList = ({ config, onSave }) => {
   const [changes, setChanges] = useState({});
-  const [newConfig, setNewConfig] = useState(config);
+  const [newConfig, setNewConfig] = useState({...config});
+  const [reboot,setReboot]=useState(false);
   const handleChange = (path, value) => {
     setChanges((prev) => {
       const next = { ...prev };
@@ -247,6 +248,17 @@ const DeviceSettingsList = ({ config, onSave }) => {
       >
         Save
       </button>
+      <FormControlLabel
+      label="Reboot"
+      control={
+        <Checkbox
+          checked={reboot}
+          onChange={(event) => {
+            setReboot(event.target.checked);
+          }}
+        />
+      }
+    />
     </Box>
   );
 };
