@@ -52,7 +52,7 @@ app.post("/setconfig", (req, res) => {
     .getDevices()
     .filter((device) => device.deviceId === deviceId)
     console.log("Device",device);
-    device.call("Config.Set", params)
+    device.call("Config.Set", params,2000)
     .then((result) => {
       if(result.error)res.json(result);
       else {
