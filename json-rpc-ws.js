@@ -35,7 +35,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
             status: "connected",
             address: req.socket.remoteAddress,
             calls: {},
-            call: (method, params, timeoutMilli) => {
+            call: (method, params, timeoutMilli=3000) => {
               return call(device, method, params, timeoutMilli);
             },
           };
