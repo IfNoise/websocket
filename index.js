@@ -37,7 +37,7 @@ app.post("/call", (req, res) => {
   jsonrpc
     .getDevices()
     .filter((id) => id === device)
-    .call(method, {config:params})
+    .call(method, params)
     .then((result) => {
       res.json(result);
     })
@@ -55,7 +55,7 @@ app.post("/setconfig", (req, res) => {
     .getDevices()
     .filter((device) => device.deviceId === deviceId)[0]
     console.log("Device",device);
-    device.call("Config.Set", params,2000)
+    device.call("Config.Set", {config:params},2000)
     .then((result) => {
       if(result.error)res.json(result);
       else {
