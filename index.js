@@ -37,7 +37,7 @@ app.post("/call", (req, res) => {
   jsonrpc
     .getDevices()
     .filter((id) => id === device)
-    .call(method, params)
+    .call(method, {config:params})
     .then((result) => {
       res.json(result);
     })
