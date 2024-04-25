@@ -28,7 +28,9 @@ app.get("/devices", (req, res) => {
   );
 });
 app.post("/call", (req, res) => {
+  console.log("Call request", req.body);
   const { device, method, params } = req.body;
+
   if (!device || !method) {
     return res.status(400).send("Invalid request");
   }
