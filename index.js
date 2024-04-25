@@ -51,11 +51,11 @@ app.post("/setconfig", (req, res) => {
   const device=jsonrpc
     .getDevices()
     .filter((id) => id === deviceId)
-    device.call(method, params)
+    device.call("Config.Set", params)
     .then((result) => {
       if(result.error)res.json(result);
       else {
-        device.call(Config.Save,{reboot}).then((result)=>{
+        device.call("Config.Save",{reboot}).then((result)=>{
           if(result.error)res.json(result);
           else {
             res.json({result:"Config updated"});
