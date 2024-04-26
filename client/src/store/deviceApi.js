@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import {baseUrl} from "../config/config"
+import { baseUrl } from "../config/config";
 
 export const deviceApi = createApi({
   reducerPath: "device/api",
@@ -18,29 +18,55 @@ export const deviceApi = createApi({
       query: () => ({
         url: "devices",
       }),
-      providesTags:['Config','State'],
+      providesTags: ["Config", "State"],
+    }),
+    getConfig: build.query({
+      query: (deviceID) => ({
+        url: `devices/${deviceID}/getConfig`,
+      }),
+      providesTags: ["Config"],
+    }),
+    getState: build.query({
+      query: (deviceID) => ({
+        url: `devices/${deviceID}/getState`,
+      }),
+      providesTags: ["Config", "State"],
+    }),
+    getOutputs: build.query({
+      query: (deviceID) => ({
+        url: `devices/${deviceID}/getOutputs`,
+      }),
+      providesTags: ["Config", "State"],
     }),
     call: build.mutation({
-      query(body) {
+      query(deviceId, body) {
         return {
-          url: `call`,
-          method: 'POST',
-          body
-        }
+          url: `devices/${deviceId}/call`,
+          method: "POST",
+          body,
+        };
       },
-      invalidatesTags: ['State'],
+      invalidatesTags: ["State"],
     }),
     setConfig: build.mutation({
-      query(body) {
+      query(deviceId, body) {
         return {
-          url: `setconfig`,
-          method: 'POST',
-          body
-        }
+          url: `devices/${deviceId}/setconfig`,
+          method: "POST",
+          body,
+        };
       },
-      invalidatesTags: ['Config','State'],
+      invalidatesTags: ["Config", "State"],
     }),
   }),
 });
 
-export const { useGetDevicesQuery,useCallMutation,useSetConfigMutation, refetch } = deviceApi;
+export const {
+  useGetDevicesQuery,
+  useCallMutation,
+  useSetConfigMutation,
+  useGetConfigQuery,
+  useGetOutputsQuery,
+  useGetStateQuery,
+  refetch,
+} = deviceApi;

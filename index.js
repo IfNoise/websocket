@@ -27,15 +27,40 @@ app.get("/devices", (req, res) => {
     })
   );
 });
-app.post("/call", (req, res) => {
-  const { device, method, params } = req.body;
+app.get("/devices/deviceId:/getState", (req, res) => {
+  const { deviceId } = req.params;
+  const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
+  if (!device) {
+    return res.status(404).send("No devices found");
+  }
+  device.call("Get.State", {}).then((result) => {
+  res.json(result);
+  }).catch((error) => {
+    res.status(500).json({ error: error.toString() });
+});
+});
+app.get("/devices/deviceId:/getOutputs", (req, res) => {
+  const { deviceId } = req.params;
+  const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
+  if (!device) {
+    return res.status(404).send("No devices found");
+  }
+  device.call("Get.Outputs", {}).then((result) => {
+  res.json(result);
+  }).catch((error) => {
+    res.status(500).json({ error: error.toString() });
+});
+});
+app.post("/devices/deviceId:/call", (req, res) => {
+  const { deviceId } = req.params;
+  const { method, params } = req.body;
 
-  if (!device || !method) {
+  if (!method) {
     return res.status(400).send("Invalid request");
   }
   jsonrpc
     .getDevices()
-    .filter((id) => id === device)
+    .filter((id) => id === deviceId)[0]
     .call(method, params)
     .then((result) => {
       res.json(result);
@@ -44,9 +69,9 @@ app.post("/call", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.post("/setconfig", (req, res) => {
-  console.log(req.body);
-  const { deviceId,reboot,params } = req.body;
+app.post("/devices/deviceId:/setconfig", (req, res) => {
+  const { deviceId } = req.params;
+  const { reboot,params } = req.body;
   if (!deviceId || !params) {
     return res.status(400).send("Invalid request");
   }

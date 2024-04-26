@@ -16,7 +16,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import dayjs from "dayjs";
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useGetConfigQuery } from "../../store/deviceApi";
 
 const secToTime = (seconds) => {
   return dayjs()
@@ -205,9 +206,11 @@ ChapterField.propTypes = {
   value: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
 };
-const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
+const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
   const [changes, setChanges] = useState({});
-  const [newConfig, setNewConfig] = useState({...config});
+  const [config,setConfig]=useState({});
+  const {isSuccess,isLoading,data,refetch}=useGetConfigQuery(deviceId)
+  const [newConfig, setNewConfig] = useState({});
   const [reboot,setReboot]=useState(false);
   const handleChange = (path, value) => {
     setChanges((prev) => {
@@ -221,7 +224,12 @@ const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
       return next;
     });
   };
-
+  useEffect(()=>{
+    if(isSuccess){
+      setConfig(data)
+      
+    }
+  },[isSuccess,data])
   const setKey = function (obj, key, val) {
     var parts = key.split(".");
     for (var i = 0; i < parts.length; i++) {
@@ -237,12 +245,12 @@ const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
   return (
     <>
       <Box sx={{height:"70%",overflowY:"scroll"}}>
-        <ChapterField
+        {isSuccess&&<ChapterField
         name="Settings"
         path=""
         value={newConfig}
         onChange={handleChange}
-      />
+      />}
       </Box>
       <Box sx={{alignContent:"center",position: "fixed",bottom: 0,left: 0}}>
       <Typography sx={{}} variant="caption" component="div">{JSON.stringify(changes)}</Typography>
@@ -251,7 +259,7 @@ const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
         variant="outlined"
         disabled={Object.keys(changes).length === 0}
         onClick={() => {
-          onSave(changes);
+          onSave(changes,reboot);
         }}
       >
         Save
@@ -288,7 +296,7 @@ const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
 };
 
 DeviceSettingsList.propTypes = {
-  config: PropTypes.object.isRequired,
+  deviceId: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
 };
 export default DeviceSettingsList;
