@@ -1,9 +1,11 @@
 import {
   Box,
+  Button,
   Checkbox,
   FormControlLabel,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import Accordion from "@mui/material/Accordion";
@@ -203,7 +205,7 @@ ChapterField.propTypes = {
   value: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
 };
-const DeviceSettingsList = ({ config, onSave }) => {
+const DeviceSettingsList = ({ config, onSave ,onCancel }) => {
   const [changes, setChanges] = useState({});
   const [newConfig, setNewConfig] = useState({...config});
   const [reboot,setReboot]=useState(false);
@@ -233,21 +235,34 @@ const DeviceSettingsList = ({ config, onSave }) => {
   };
 
   return (
-    <Box>
-      <ChapterField
+    <>
+      <Box sx={{height:"70%",overflowY:"scroll"}}>
+        <ChapterField
         name="Settings"
         path=""
         value={newConfig}
         onChange={handleChange}
       />
-      <pre>{JSON.stringify(changes, null, 2)}</pre>
-      <button
+      </Box>
+      <Box sx={{alignContent:"center",position: "fixed",bottom: 0,left: 0}}>
+      <Typography sx={{}} variant="caption" component="div">{JSON.stringify(changes)}</Typography>
+      
+      <Button
+        variant="outlined"
+        disabled={Object.keys(changes).length === 0}
         onClick={() => {
           onSave(changes);
         }}
       >
         Save
-      </button>
+      </Button>
+      <Button
+        variant="outlined"
+        disabled={Object.keys(changes).length === 0}
+        onClick={() => {
+          setNewConfig(config);
+          setChanges({});
+        }} >Reset</Button>
       <FormControlLabel
       label="Reboot"
       control={
@@ -259,7 +274,16 @@ const DeviceSettingsList = ({ config, onSave }) => {
         />
       }
     />
+      <Button
+        variant="outlined"
+        onClick={() => {
+          onCancel();
+        }}
+      >
+        Cancel
+      </Button>
     </Box>
+    </>
   );
 };
 
