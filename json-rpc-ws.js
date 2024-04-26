@@ -23,6 +23,9 @@ function JSONRPCws(port = 8080, ondevice = null) {
     const addDevice= (device) => {
       devices.push(device);
     };
+    const removeDevice = (device) => {
+      devices.splice(devices.indexOf(device), 1);
+    }
     const engine = {
       start: () => {
         wss.on("connection", function connection(ws, req) {
@@ -56,6 +59,13 @@ function JSONRPCws(port = 8080, ondevice = null) {
           addDevice(device);
           if (ondevice) ondevice(device);
         });
+        wss.on("close", function close() {
+          console.log("disconnected");
+          devices.filter((device) => device.status==='offline').forEach((device) => {
+            removeDevice(device);
+          }
+          )
+        })
       },
       getDevices: () => {
         return devices;

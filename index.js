@@ -28,7 +28,7 @@ app.get("/devices", (req, res) => {
   );
 });
 app.get("/devices/deviceId:/getState", (req, res) => {
-  const { deviceId } = req.params;
+  const { deviceId } = JSON.parse(req.params);
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
     return res.status(404).send("No devices found");
@@ -40,7 +40,7 @@ app.get("/devices/deviceId:/getState", (req, res) => {
 });
 });
 app.get("/devices/deviceId:/getOutputs", (req, res) => {
-  const { deviceId } = req.params;
+  const { deviceId } = JSON.parse(req.params);
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
     return res.status(404).send("No devices found");

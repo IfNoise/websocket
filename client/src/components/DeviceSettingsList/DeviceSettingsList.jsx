@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   FormControlLabel,
   Stack,
   TextField,
@@ -17,7 +18,7 @@ import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import dayjs from "dayjs";
 import PropTypes from "prop-types";
 import { useEffect, useState } from "react";
-import { useGetConfigQuery } from "../../store/deviceApi";
+import { useGetConfigQuery, useSetConfigMutation } from "../../store/deviceApi";
 
 const secToTime = (seconds) => {
   return dayjs()
@@ -206,12 +207,18 @@ ChapterField.propTypes = {
   value: PropTypes.object.isRequired,
   onChange: PropTypes.func.isRequired,
 };
-const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
+const DeviceSettingsList = ({ deviceId,onCancel }) => {
   const [changes, setChanges] = useState({});
   const [config,setConfig]=useState({});
   const {isSuccess,isLoading,data,refetch}=useGetConfigQuery(deviceId)
+  const{setConfig:saveChanges}=useSetConfigMutation(deviceId);
   const [newConfig, setNewConfig] = useState({});
   const [reboot,setReboot]=useState(false);
+  const handleSave = (changes) => {
+    saveChanges({reboot:reboot||false,params:changes});
+    setChanges({});
+    refetch();
+  };
   const handleChange = (path, value) => {
     setChanges((prev) => {
       const next = { ...prev };
@@ -227,7 +234,7 @@ const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
   useEffect(()=>{
     if(isSuccess){
       setConfig(data)
-      
+
     }
   },[isSuccess,data])
   const setKey = function (obj, key, val) {
@@ -245,6 +252,7 @@ const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
   return (
     <>
       <Box sx={{height:"70%",overflowY:"scroll"}}>
+        {isLoading&&<CircularProgress/>}
         {isSuccess&&<ChapterField
         name="Settings"
         path=""
@@ -258,9 +266,7 @@ const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
       <Button
         variant="outlined"
         disabled={Object.keys(changes).length === 0}
-        onClick={() => {
-          onSave(changes,reboot);
-        }}
+        onClick={handleSave}
       >
         Save
       </Button>
@@ -288,7 +294,7 @@ const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
           onCancel();
         }}
       >
-        Cancel
+        Ok
       </Button>
     </Box>
     </>
@@ -297,6 +303,6 @@ const DeviceSettingsList = ({ deviceId, onSave ,onCancel }) => {
 
 DeviceSettingsList.propTypes = {
   deviceId: PropTypes.string.isRequired,
-  onSave: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
 };
 export default DeviceSettingsList;

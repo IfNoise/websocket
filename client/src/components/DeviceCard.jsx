@@ -1,9 +1,9 @@
-import { Button, Card, CardActions, CardContent, CardHeader,Dialog} from "@mui/material";
+import { Button, Card, CardActions, CardContent, CardHeader,CircularProgress,Dialog} from "@mui/material";
 import PropTypes from "prop-types";
 import OnlinePredictionIcon from '@mui/icons-material/OnlinePrediction';
 import ErrorIcon from '@mui/icons-material/Error';
 import DeviceSettingsList from "./DeviceSettingsList/DeviceSettingsList";
-import { useSetConfigMutation } from "../store/deviceApi";
+import { useGetOutputsQuery} from "../store/deviceApi";
 import { useState } from "react";
 
 const Status=({status})=>{
@@ -21,17 +21,27 @@ const Status=({status})=>{
 Status.propTypes={
   status: PropTypes.string.isRequired,
 }
+const Outputs=({deviceId,updateInterval})=>{
+  const{isLoading,isSuccess,data}=useGetOutputsQuery(deviceId,{pollingInterval : updateInterval});
+  if(isLoading){
+    return <CircularProgress/>
+  }
+  if(isSuccess){
+    return data.map((output,id)=>(
+      <pre key={id}>{JSON.stringify(output)}</pre>
+    ))
+  }
+}
+Outputs.propTypes={
+  deviceId: PropTypes.string.isRequired,
+  updateInterval: PropTypes.number.isRequired,
+} 
 
 const DeviceCard = ({ device }) => {
-  const[setConfig]=useSetConfigMutation();
+  
   const [open, setOpen] = useState(false);
   const {id, address, status} = device;
   const config = {...device.config};
-  const saveChanges=(changes,reboot)=>{
-    console.log("Saving changes", changes);
-    setConfig({deviceId:id, reboot:reboot||false, params:changes})
-    handleClose();
-  }
   const handleClose = () => {
     setOpen(false);
   };
@@ -43,7 +53,7 @@ const DeviceCard = ({ device }) => {
     <Card>
       <CardHeader avatar={<Status status={status}/> }  title={id} subheader={address} /> 
       <CardContent>
-
+        <Outputs deviceId={id} updateInterval={5000}/>
       
       </CardContent>
       <CardActions>
@@ -55,7 +65,7 @@ const DeviceCard = ({ device }) => {
         open={open}
         onClose={handleClose}
       >
-        {config &&<DeviceSettingsList config={config} onSave={saveChanges} onCancel={handleClose}/>}
+        {config &&<DeviceSettingsList config={config} onCancel={handleClose}/>}
     </Dialog> 
     </>
   );
