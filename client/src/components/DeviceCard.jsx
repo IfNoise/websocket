@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import OnlinePredictionIcon from '@mui/icons-material/OnlinePrediction';
 import ErrorIcon from '@mui/icons-material/Error';
 import DeviceSettingsList from "./DeviceSettingsList/DeviceSettingsList";
-import { useGetOutputsQuery} from "../store/deviceApi";
+import { useGetStateQuery} from "../store/deviceApi";
 import { useState } from "react";
 
 const Status=({status})=>{
@@ -22,7 +22,7 @@ Status.propTypes={
   status: PropTypes.string.isRequired,
 }
 const Outputs=({deviceId,updateInterval})=>{
-  const{isLoading,isSuccess,data}=useGetOutputsQuery(deviceId,{pollingInterval : updateInterval});
+  const{isLoading,isSuccess,data}=useGetStateQuery(deviceId,{pollingInterval : updateInterval});
   if(isLoading){
     return <CircularProgress/>
   }
