@@ -234,7 +234,7 @@ const DeviceSettingsList = ({ deviceId,onCancel }) => {
   useEffect(()=>{
     if(isSuccess){
       setConfig(data)
-
+      setNewConfig(data)
     }
   },[isSuccess,data])
   const setKey = function (obj, key, val) {

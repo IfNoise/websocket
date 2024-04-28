@@ -27,7 +27,7 @@ app.get("/devices", (req, res) => {
     })
   );
 });
-app.get("/devices/deviceId:/getState", (req, res) => {
+app.get("/devices/:deviceId/getState", (req, res) => {
   const { deviceId } = JSON.parse(req.params);
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
@@ -39,8 +39,9 @@ app.get("/devices/deviceId:/getState", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.get("/devices/deviceId:/getOutputs", (req, res) => {
+app.get("/devices/:deviceId/getOutputs", (req, res) => {
   const { deviceId } = JSON.parse(req.params);
+
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
     return res.status(404).send("No devices found");
@@ -51,7 +52,7 @@ app.get("/devices/deviceId:/getOutputs", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.post("/devices/deviceId:/call", (req, res) => {
+app.post("/devices/:deviceId/call", (req, res) => {
   const { deviceId } = req.params;
   const { method, params } = req.body;
 
@@ -69,7 +70,7 @@ app.post("/devices/deviceId:/call", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.post("/devices/deviceId:/setconfig", (req, res) => {
+app.post("/devices/:deviceId/setconfig", (req, res) => {
   const { deviceId } = req.params;
   const { reboot,params } = req.body;
   if (!deviceId || !params) {
