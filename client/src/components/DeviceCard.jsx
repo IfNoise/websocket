@@ -1,4 +1,4 @@
-import { Button, Card, CardActions, CardContent, CardHeader,CircularProgress,Dialog} from "@mui/material";
+import { Alert, Button, Card, CardActions, CardContent, CardHeader,CircularProgress,Dialog} from "@mui/material";
 import PropTypes from "prop-types";
 import OnlinePredictionIcon from '@mui/icons-material/OnlinePrediction';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -22,15 +22,17 @@ Status.propTypes={
   status: PropTypes.string.isRequired,
 }
 const Outputs=({deviceId,updateInterval})=>{
-  const{isLoading,isSuccess,data}=useGetStateQuery(deviceId,{pollingInterval : updateInterval});
-  if(isLoading){
-    return <CircularProgress/>
-  }
-  if(isSuccess){
-    return data.map((output,id)=>(
-      <pre key={id}>{JSON.stringify(output)}</pre>
-    ))
-  }
+  const{isLoading,isSuccess,isError,data}=useGetStateQuery(deviceId,{pollingInterval : updateInterval});
+
+  return (
+    <>
+    {isLoading && <CircularProgress/>}
+    {isError && <Alert severity="error">{isError.message}</Alert>}
+    {data &&data?.result?.outputs.map((output,i)=>(
+      <Button key={i} variant="contained" color={output.value?"primary":"secondary"}>{output.name}</Button> 
+    ))}
+    </>
+  )
 }
 Outputs.propTypes={
   deviceId: PropTypes.string.isRequired,
@@ -65,7 +67,7 @@ const DeviceCard = ({ device }) => {
         open={open}
         onClose={handleClose}
       >
-        {config &&<DeviceSettingsList config={config} onCancel={handleClose}/>}
+        {config &&<DeviceSettingsList deviceId={id} onCancel={handleClose}/>}
     </Dialog> 
     </>
   );
