@@ -211,32 +211,33 @@ const DeviceSettingsList = ({ deviceId,onCancel }) => {
   const [changes, setChanges] = useState({});
   const [config,setConfig]=useState({});
   const {isSuccess,isLoading,data,refetch}=useGetConfigQuery(deviceId)
-  const{setConfig:saveChanges}=useSetConfigMutation(deviceId);
+  const[saveChanges]=useSetConfigMutation();
   const [newConfig, setNewConfig] = useState({});
   const [reboot,setReboot]=useState(false);
-  const handleSave = (changes) => {
-    saveChanges({reboot:reboot||false,params:changes});
+  const handleSave = () => {
+    saveChanges(deviceId,{reboot:reboot||false,params:changes});
     setChanges({});
     refetch();
   };
   const handleChange = (path, value) => {
     setChanges((prev) => {
-      const next = { ...prev };
+      let next = { ...prev };
       setKey(next, path, value);
       return next;
     });
     setNewConfig((prev) => {
-      const next = { ...prev };
+      let next  = JSON.parse(JSON.stringify(prev));
       setKey(next, path, value);
       return next;
     });
   };
   useEffect(()=>{
-    if(isSuccess){
-      setConfig(data)
-      setNewConfig(data)
+    if(isSuccess&&data){
+      setConfig(new Object(data))
+      setNewConfig(new Object(data))
     }
   },[isSuccess,data])
+
   const setKey = function (obj, key, val) {
     var parts = key.split(".");
     for (var i = 0; i < parts.length; i++) {

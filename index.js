@@ -86,6 +86,9 @@ app.post("/devices/:deviceId/call", (req, res) => {
 app.post("/devices/:deviceId/setconfig", (req, res) => {
   const { deviceId } = req.params;
   const { reboot,params } = req.body;
+  console.log('deviceId:',deviceId)
+  console.log('reboot:',reboot)
+  console.log('params:',params)  
   if (!deviceId || !params) {
     return res.status(400).send("Invalid request");
   }

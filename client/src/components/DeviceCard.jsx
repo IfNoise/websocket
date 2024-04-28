@@ -29,7 +29,7 @@ const Outputs=({deviceId,updateInterval})=>{
     {isLoading && <CircularProgress/>}
     {isError && <Alert severity="error">{isError.message}</Alert>}
     {data &&data?.result?.outputs.map((output,i)=>(
-      <Button key={i} variant="contained" color={output.value?"primary":"secondary"}>{output.name}</Button> 
+      <Button key={i} variant="contained" color={output.state?"primary":"secondary"}>{output.name}</Button> 
     ))}
     </>
   )
@@ -55,7 +55,7 @@ const DeviceCard = ({ device }) => {
     <Card>
       <CardHeader avatar={<Status status={status}/> }  title={id} subheader={address} /> 
       <CardContent>
-        <Outputs deviceId={id} updateInterval={5000}/>
+        <Outputs deviceId={id} updateInterval={10000}/>
       
       </CardContent>
       <CardActions>
