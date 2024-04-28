@@ -40,7 +40,7 @@ app.get("/devices/:deviceId/getState", (req, res) => {
 });
 });
 app.get("/devices/:deviceId/getOutputs", (req, res) => {
-  const { deviceId } = JSON.parse(req.params);
+  const { deviceId } = req.params;
 
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
