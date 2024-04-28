@@ -248,11 +248,11 @@ const DeviceSettingsList = ({ deviceId,onCancel }) => {
       }
     }
   };
-
+  if(isLoading)return(<CircularProgress/>)
   return (
     <>
       <Box sx={{height:"70%",overflowY:"scroll"}}>
-        {isLoading&&<CircularProgress/>}
+
         {isSuccess&&<ChapterField
         name="Settings"
         path=""
