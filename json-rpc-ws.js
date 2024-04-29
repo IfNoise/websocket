@@ -41,6 +41,10 @@ function JSONRPCws(port = 8080, ondevice = null) {
             call: (method, params, timeoutMilli=3000) => {
               return call(device, method, params, timeoutMilli);
             },
+            update: function() {
+              device.call("Config.Get", {}).then((result) => {
+                device.config = result.result;
+              });}
           };
           device.ws.on("message", function incoming(message) {
             var frame = JSON.parse(message);

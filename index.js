@@ -105,7 +105,7 @@ app.post("/devices/:deviceId/setconfig", (req, res) => {
           else {
             res.json({result:"Config updated"});
           }
-        
+        device.update();
         }).catch((error) => {
           res.status(500).json({ error: error.toString() });
         });  
