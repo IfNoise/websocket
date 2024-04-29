@@ -209,32 +209,36 @@ ChapterField.propTypes = {
 };
 const DeviceSettingsList = ({ deviceId,onCancel }) => {
   const [changes, setChanges] = useState({});
-  const [config,setConfig]=useState({});
-  const {isSuccess,isLoading,data,refetch}=useGetConfigQuery(deviceId)
-  const[saveChanges]=useSetConfigMutation();
+  //const [config,setConfig]=useState({});
+  const {isSuccess,isLoading,data,refetch}=useGetConfigQuery(deviceId,{refetchOnReconnect:true,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true})
+  const[setConfig]=useSetConfigMutation();
   const [newConfig, setNewConfig] = useState({});
   const [reboot,setReboot]=useState(false);
   const handleSave = () => {
-    saveChanges(deviceId,{reboot:reboot||false,params:changes});
+    console.log("Save", changes);
+    setConfig({deviceId,params:{reboot:reboot||false,params:changes}});
     setChanges({});
     refetch();
+    setNewConfig(JSON.parse(JSON.stringify(data)))
   };
   const handleChange = (path, value) => {
     setChanges((prev) => {
-      let next = { ...prev };
+      let next ={...prev};
       setKey(next, path, value);
       return next;
     });
     setNewConfig((prev) => {
-      let next  = JSON.parse(JSON.stringify(prev));
+      let next  = { ...prev}
       setKey(next, path, value);
       return next;
     });
   };
   useEffect(()=>{
     if(isSuccess&&data){
-      setConfig(new Object(data))
-      setNewConfig(new Object(data))
+      //setConfig(JSON.parse(JSON.stringify(data)))
+      setNewConfig(JSON.parse(JSON.stringify(data)))
     }
   },[isSuccess,data])
 
@@ -249,12 +253,13 @@ const DeviceSettingsList = ({ deviceId,onCancel }) => {
       }
     }
   };
-  if(isLoading)return(<CircularProgress/>)
+  if(isLoading|| Object.keys(data).length <1)return(<CircularProgress/>)
   return (
     <>
       <Box sx={{height:"70%",overflowY:"scroll"}}>
 
-        {isSuccess&&<ChapterField
+        {isSuccess&&
+        <ChapterField
         name="Settings"
         path=""
         value={newConfig}
@@ -273,9 +278,9 @@ const DeviceSettingsList = ({ deviceId,onCancel }) => {
       </Button>
       <Button
         variant="outlined"
-        disabled={Object.keys(changes).length === 0}
+        //disabled={Object.keys(changes).length === 0}
         onClick={() => {
-          setNewConfig(config);
+          setNewConfig(JSON.parse(JSON.stringify(data)))
           setChanges({});
         }} >Reset</Button>
       <FormControlLabel

@@ -49,11 +49,11 @@ export const deviceApi = createApi({
       invalidatesTags: ["State"],
     }),
     setConfig: build.mutation({
-      query(deviceId, body) {
+      query({deviceId, params}) {
         return {
           url: `devices/${deviceId}/setconfig`,
           method: "POST",
-          body,
+          body: params,
         };
       },
       invalidatesTags: ["Config", "State"],
