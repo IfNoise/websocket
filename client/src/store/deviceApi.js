@@ -18,7 +18,7 @@ export const deviceApi = createApi({
       query: () => ({
         url: "devices",
       }),
-      providesTags: ["Config", "State"],
+      providesTags: ["Config"],
     }),
     getConfig: build.query({
       query: (deviceID) => ({

@@ -99,6 +99,7 @@ app.post("/devices/:deviceId/setconfig", (req, res) => {
     .then((result) => {
       if(result.error)res.json(result);
       else {
+        device.config=result.result;
         device.call("Config.Save",{reboot}).then((result)=>{
           if(result.error)res.json(result);
           else {
@@ -108,7 +109,7 @@ app.post("/devices/:deviceId/setconfig", (req, res) => {
         }).catch((error) => {
           res.status(500).json({ error: error.toString() });
         });  
-        device.config=result.result;
+        
     }
     })
     .catch((error) => {

@@ -3,7 +3,9 @@ import DeviceCard from "../components/DeviceCard";
 import { useGetDevicesQuery } from "../store/deviceApi";
 
 const Dashboard = () => {
-  const { isLoading, isError, error, data,refetch }=useGetDevicesQuery();
+  const { isLoading, isError, error, data,refetch }=useGetDevicesQuery({refetchOnReconnect:true,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true});
   if (data?.length === 0) {
     return <Alert severity="info">No devices found</Alert>;
   }
