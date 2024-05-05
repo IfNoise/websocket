@@ -3,13 +3,14 @@ import express from "express";
 import cors from "cors";
 import  bodyParser  from "body-parser";
 const app = express();
+const wss=express.Router();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
 if (process.env.NODE_ENV === 'production') {
-  app.use('/', express.static(path.join(__dirname, 'client', 'dist')))
+  wss.use('/', express.static(path.join(__dirname, 'client', 'dist')))
 
-  app.get('*', (req, res) => {
+  wss.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
   })
 }
@@ -18,7 +19,8 @@ const jsonrpc = JSONRPCws(8080, (device) => {
 
   console.log(jsonrpc.getDevices());
 });
-app.get("/devices", (req, res) => {
+
+wss.get("/devices", (req, res) => {
   const devices = jsonrpc.getDevices();
   if (!devices) {
     return res.status(404).send("No devices found");
@@ -34,7 +36,7 @@ app.get("/devices", (req, res) => {
     })
   );
 });
-app.get("/devices/:deviceId/getState", (req, res) => {
+wss.get("/devices/:deviceId/getState", (req, res) => {
   const { deviceId } =req.params;
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
@@ -46,7 +48,7 @@ app.get("/devices/:deviceId/getState", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.get("/devices/:deviceId/getConfig", (req, res) => {
+wss.get("/devices/:deviceId/getConfig", (req, res) => {
   const { deviceId } = req.params;
 
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
@@ -59,7 +61,7 @@ app.get("/devices/:deviceId/getConfig", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 })
-app.get("/devices/:deviceId/getOutputs", (req, res) => {
+wss.get("/devices/:deviceId/getOutputs", (req, res) => {
   const { deviceId } = req.params;
 
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
@@ -72,7 +74,7 @@ app.get("/devices/:deviceId/getOutputs", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.post("/devices/:deviceId/call", (req, res) => {
+wss.post("/devices/:deviceId/call", (req, res) => {
   const { deviceId } = req.params;
   const { method, params } = req.body;
 
@@ -90,7 +92,7 @@ app.post("/devices/:deviceId/call", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.post("/devices/:deviceId/setconfig", (req, res) => {
+wss.post("/devices/:deviceId/setconfig", (req, res) => {
   const { deviceId } = req.params;
   const { reboot,params } = req.body;
   console.log('deviceId:',deviceId)
@@ -123,6 +125,7 @@ app.post("/devices/:deviceId/setconfig", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
+app.use("/wss", wss);
 jsonrpc.start();
 app.listen(3000, () => {
   console.log("Server running on port 3000");
