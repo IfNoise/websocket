@@ -1,7 +1,7 @@
 module.exports = {
   apps : [{
-    name   : "Plants",
-    script : "./app.js",
+    name   : "WebSocketServer",
+    script : "./index.js",
      env_production: {
        NODE_ENV: "production"
     },
