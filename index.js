@@ -2,6 +2,7 @@ import JSONRPCws from "./json-rpc-ws.js ";
 import express from "express";
 import cors from "cors";
 import  bodyParser  from "body-parser";
+import path from "path";
 const app = express();
 const wss=express.Router();
 app.use(cors());
