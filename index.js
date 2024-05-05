@@ -125,7 +125,7 @@ wss.post("/devices/:deviceId/setconfig", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.use("/wss", wss);
+app.use("/wss/", wss);
 jsonrpc.start();
 app.listen(3000, () => {
   console.log("Server running on port 3000");
