@@ -1,8 +1,10 @@
-import JSONRPCws from "./json-rpc-ws.js ";
-import express from "express";
-import cors from "cors";
-import  bodyParser  from "body-parser";
-import path from "path";
+const JSONRPCws=require('json-rpc-ws')  ;
+const express=require("express")
+// const https = require('https');
+// const fs = require('fs');
+const bodyParser = require('body-parser');
+const cors=require("cors")
+const path=require('path')
 const app = express();
 const wss=express.Router();
 app.use(cors());
