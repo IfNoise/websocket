@@ -6,33 +6,23 @@ import { ThemeProvider, createTheme } from "@mui/material";
 
 const theme = createTheme(
 {
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#9a8ef5',
+    palette: {
+      mode: 'light',
+      primary: {
+        main: '#363f73',
+        dark: '#7e89f3',
+        contrastText: '#c0f3cd',
+      },
+      secondary: {
+        main: '#f50057',
+      },
+      background: {
+        default: '#a9b4c3',
+        paper: '#485562',
+      },
+      divider: 'rgba(35,46,59,0.12)',
     },
-    secondary: {
-      main: '#f50057',
-    },
-    background: {
-      default: '#d3efdb',
-      paper: '#fbfdfd',
-    },
-    text: {
-      primary: 'rgba(80,79,62,0.87)',
-    },
-  },
-  typography: {
-    h4: {
-      letterSpacing: '0.06em',
-    },
-    caption: {
-      fontSize: '0.6rem',
-      lineHeight: 1.76,
-      letterSpacing: '0.18em',
-    },
-  },
-})
+  })
 
 function App() {
 
@@ -43,9 +33,9 @@ function App() {
   });
   return (
       <SnackbarContext.Provider value={{ snack, setSnack }}>
-        <ThemeProvider theme={theme}> 
+
       <RouterProvider router={Router} />
-      </ThemeProvider>
+
       </SnackbarContext.Provider>
   );
 }

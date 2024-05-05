@@ -1,4 +1,4 @@
-import { Alert, Box, CircularProgress } from "@mui/material";
+import { Alert, Box, CircularProgress, Stack } from "@mui/material";
 import DeviceCard from "../components/DeviceCard";
 import { useGetDevicesQuery } from "../store/deviceApi";
 
@@ -10,12 +10,14 @@ const Dashboard = () => {
     return <Alert severity="info">No devices found</Alert>;
   }
   return (
-    <Box sx={{position:"absolute",top:120,bottom:0}}>
+    <Box sx={{mt:"180px"}}>
       {!data && <CircularProgress /> }
       {data?.length === 0 && <Alert severity="info">No devices found</Alert>}
+      <Stack direction="row" spacing={2}>
       {data && data.map((device) => (
         <DeviceCard key={device.id} device={device} />
       ))}
+      </Stack>
     </Box>
   );
 }

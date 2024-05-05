@@ -5,7 +5,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "server": "nodemon app.js",
+    "client": "npm run dev --prefix client",
+    "client:install": "npm install --prefix client",
+    "client:build": "npm run build --prefix client",
+    "dev": "concurrently \" npm run server\" \"npm run client\""
   },
   "author": "",
   "license": "ISC",
