@@ -7,13 +7,11 @@ const wss=express.Router();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-if (process.env.NODE_ENV === 'production') {
-  wss.use('/', express.static(path.join(__dirname, 'client', 'dist')))
+wss.use('/', express.static(path.join(__dirname, 'client', 'dist')))
 
   wss.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
   })
-}
 const jsonrpc = JSONRPCws(8080, (device) => {
   console.log("Device connected", device);
 
@@ -125,7 +123,7 @@ wss.post("/devices/:deviceId/setconfig", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.use("/wss/", wss);
+app.use("/wss", wss);
 jsonrpc.start();
 app.listen(3000, () => {
   console.log("Server running on port 3000");
