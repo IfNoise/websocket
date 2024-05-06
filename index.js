@@ -1,16 +1,19 @@
-const JSONRPCws=require('json-rpc-ws')  ;
-const express=require("express")
-// const https = require('https');
-// const fs = require('fs');
-const bodyParser = require('body-parser');
-const cors=require("cors")
-const path=require('path')
+import JSONRPCws from "./json-rpc-ws.js ";
+import express from "express";
+import cors from "cors";
+import  bodyParser  from "body-parser";
+import path from "path"
+import { URL } from 'node:url'; // in Browser, the URL in native accessible on window
+
+const __filename = new URL('', import.meta.url).pathname;
+// Will contain trailing slash
+const __dirname = new URL('.', import.meta.url).pathname;
 const app = express();
 const wss=express.Router();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-wss.use('/', express.static(path.join(__dirname, 'client', 'dist')))
+  wss.use('/', express.static(path.join(__dirname, 'client', 'dist')))
 
   wss.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
