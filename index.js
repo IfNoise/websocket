@@ -15,7 +15,7 @@ app.use(express.json({ extended: true }));
   app.use('/', express.static(path.join(__dirname, 'client', 'dist')))
 
   app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'))
   })
 const jsonrpc = JSONRPCws(8080, (device) => {
   console.log("Device connected", device);
