@@ -1,1 +1,1 @@
-export const baseUrl = "http://192.168.31.250:3000/";
+export const baseUrl = "https://lab-server.lan/wss/";
