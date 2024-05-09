@@ -5,15 +5,15 @@ import  bodyParser  from "body-parser";
 import path from "path"
 import { URL } from 'node:url'; // in Browser, the URL in native accessible on window
 
-const __dirname = new URL('.', import.meta.url).pathname;
+const dirname = new URL('.', import.meta.url);
 const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-  app.use('/wss/', express.static(path.join(__dirname, 'client', 'dist')))
+  app.use('/', express.static(new URL('client/dist', dirname).pathname))
 
-  app.get('/wss/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'))
+  app.get('/*', (req, res) => {
+    res.sendFile(new URL('client/dist/index.html', dirname).pathname)
   })
 const jsonrpc = JSONRPCws(8080, (device) => {
   console.log("Device connected", device);
@@ -21,7 +21,7 @@ const jsonrpc = JSONRPCws(8080, (device) => {
   console.log(jsonrpc.getDevices());
 });
 
-app.get("/wss/devices", (req, res) => {
+app.get("/devices", (req, res) => {
   const devices = jsonrpc.getDevices();
   if (!devices) {
     return res.status(404).send("No devices found");
@@ -37,7 +37,7 @@ app.get("/wss/devices", (req, res) => {
     })
   );
 });
-app.get("/wss/devices/:deviceId/getState", (req, res) => {
+app.get("/devices/:deviceId/getState", (req, res) => {
   const { deviceId } =req.params;
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
   if (!device) {
@@ -49,7 +49,7 @@ app.get("/wss/devices/:deviceId/getState", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.get("/wss/devices/:deviceId/getConfig", (req, res) => {
+app.get("/devices/:deviceId/getConfig", (req, res) => {
   const { deviceId } = req.params;
 
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
@@ -62,7 +62,7 @@ app.get("/wss/devices/:deviceId/getConfig", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 })
-app.get("/wss/devices/:deviceId/getOutputs", (req, res) => {
+app.get("/devices/:deviceId/getOutputs", (req, res) => {
   const { deviceId } = req.params;
 
   const device = jsonrpc.getDevices().filter((device) => device.deviceId === deviceId)[0];
@@ -75,7 +75,7 @@ app.get("/wss/devices/:deviceId/getOutputs", (req, res) => {
     res.status(500).json({ error: error.toString() });
 });
 });
-app.post("/wss/devices/:deviceId/call", (req, res) => {
+app.post("/devices/:deviceId/call", (req, res) => {
   const { deviceId } = req.params;
   const { method, params } = req.body;
 
@@ -93,7 +93,7 @@ app.post("/wss/devices/:deviceId/call", (req, res) => {
       res.status(500).json({ error: error.toString() });
     });
 });
-app.post("/wss/devices/:deviceId/setconfig", (req, res) => {
+app.post("/devices/:deviceId/setconfig", (req, res) => {
   const { deviceId } = req.params;
   const { reboot,params } = req.body;
   console.log('deviceId:',deviceId)
