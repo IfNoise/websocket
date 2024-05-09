@@ -2,7 +2,6 @@ import JSONRPCws from "./json-rpc-ws.js ";
 import express from "express";
 import cors from "cors";
 import  bodyParser  from "body-parser";
-import path from "path"
 import { URL } from 'node:url'; // in Browser, the URL in native accessible on window
 
 const dirname = new URL('.', import.meta.url);
@@ -12,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
   app.use('/', express.static(new URL('client/dist', dirname).pathname))
 
-  app.get('/*', (req, res) => {
+  app.get('*', (req, res) => {
     res.sendFile(new URL('client/dist/index.html', dirname).pathname)
   })
 const jsonrpc = JSONRPCws(8080, (device) => {
