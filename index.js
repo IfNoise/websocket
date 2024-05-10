@@ -9,11 +9,11 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-  app.use('/', express.static(new URL('client/dist', dirname).pathname))
+  // app.use('/', express.static(new URL('client/dist', dirname).pathname))
 
-  app.get('*', (req, res) => {
-    res.sendFile(new URL('client/dist/index.html', dirname).pathname)
-  })
+  // app.get('*', (req, res) => {
+  //   res.sendFile(new URL('client/dist/index.html', dirname).pathname)
+  // })
 const jsonrpc = JSONRPCws(8080, (device) => {
   console.log("Device connected", device);
 
