@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 
 function JSONRPCws(port = 8080, ondevice = null) {
   const devices = [];
-  const defaultTimeoutMs = 3000;
+  const defaultTimeoutMs = 5000;
   const wss = new WebSocketServer({ port }, () => {
     console.log("JSONRPCws listening ");
   });

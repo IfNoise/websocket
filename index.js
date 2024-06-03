@@ -2,19 +2,11 @@ import JSONRPCws from "./json-rpc-ws.js ";
 import express from "express";
 import cors from "cors";
 import  bodyParser  from "body-parser";
-import { URL } from 'node:url'; // in Browser, the URL in native accessible on window
-
-const dirname = new URL('.', import.meta.url);
 const app = express();
 const api = express.Router();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-  // app.use('/', express.static(new URL('client/dist', dirname).pathname))
-
-  // app.get('*', (req, res) => {
-  //   res.sendFile(new URL('client/dist/index.html', dirname).pathname)
-  // })
 const jsonrpc = JSONRPCws(8080, (device) => {
   console.log("Device connected", device);
 
