@@ -21,7 +21,7 @@ function JSONRPCws(port = 8080, ondevice = null) {
       });
     };
     const addDevice= (device) => {
-      if(devices.filter((d) => d.deviceId === device.deviceId).length > 0) devices.filter((d) => d.deviceId === device.deviceId).forEach((d) => removeDevice(d)); // Remove existing device with same deviceId
+      if(devices.filter((d) => d.address === device.address).length > 0) devices.filter((d) => d.address === device.address).forEach((d) => removeDevice(d)); // Remove existing device with same deviceId
       devices.push(device);
     };
     const removeDevice = (device) => {
