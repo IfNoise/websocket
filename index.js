@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import JSONRPCws from "./json-rpc-ws.js ";
 import express from "express";
 import cors from "cors";
@@ -7,7 +8,11 @@ const api = express.Router();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json({ extended: true }));
-const jsonrpc = JSONRPCws(8080, (device) => {
+
+const WS_PORT = process.env.WS_PORT || 8080;
+const API_PORT = process.env.API_PORT || 3600;
+
+const jsonrpc = JSONRPCws(WS_PORT, (device) => {
   console.log("Device connected", device);
 
   console.log(jsonrpc.getDevices());
@@ -120,6 +125,6 @@ api.post("/devices/:deviceId/setconfig", (req, res) => {
 });
 app.use("/api", api);
 jsonrpc.start();
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.listen(API_PORT, () => {
+  console.log(`Server running on port ${API_PORT}`);
 });
