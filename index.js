@@ -84,7 +84,9 @@ api.post("/devices/:deviceId/call", (req, res) => {
     return res.status(404).send("Device not found");
   }
   device.call(method, params)
-    .then((result) => res.json(result))
+    .then((result) => {
+      console.log('result:',result);
+      res.json(result)})
     .catch((error) => res.status(500).json({ error: error.toString() }));
 });
 api.post("/devices/:deviceId/setconfig", (req, res) => {
@@ -101,7 +103,6 @@ api.post("/devices/:deviceId/setconfig", (req, res) => {
     .filter((device) => device.deviceId === deviceId)[0]
     device.call("Config.Set", {config:params},2000)
     .then((result) => {
-      console.log('Config.Set result:',result)
       if(result.error)res.json(result);
       else {
         device.config=result.result;
