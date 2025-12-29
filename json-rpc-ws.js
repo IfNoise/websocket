@@ -85,6 +85,7 @@ function JSONRPCws(port, ondevice = null) {
         ws.on("message", function incoming(message) {
           let frame;
           try {
+            logger.debug && logger.debug("Raw message from", device.address, message);
             frame = JSON.parse(message);
           } catch (err) {
             logger.warn("Invalid JSON from", device.address, err && err.message);
