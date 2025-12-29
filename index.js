@@ -101,6 +101,7 @@ api.post("/devices/:deviceId/setconfig", (req, res) => {
     .filter((device) => device.deviceId === deviceId)[0]
     device.call("Config.Set", {config:params},2000)
     .then((result) => {
+      console.log('Config.Set result:',result)
       if(result.error)res.json(result);
       else {
         device.config=result.result;
