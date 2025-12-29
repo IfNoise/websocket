@@ -88,7 +88,15 @@ function JSONRPCws(port, ondevice = null) {
             logger.debug && logger.debug("Raw message from", device.address, message);
             frame = JSON.parse(message);
           } catch (err) {
-            logger.warn("Invalid JSON from", device.address, err && err.message);
+            // Логируем часть сообщения и ошибку
+            const msgStr = typeof message === 'string' ? message : (message && message.toString ? message.toString() : '');
+            logger.warn(
+              `Invalid JSON from ${device.address}: ${err && err.message}\nPayload: ` +
+               msgStr
+            );
+            if (process.env.NODE_ENV === 'development' && err && err.stack) {
+              logger.warn(err.stack);
+            }
             return;
           }
           logger.debug && logger.debug("Received frame:", frame);
