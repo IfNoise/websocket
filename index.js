@@ -79,16 +79,13 @@ api.post("/devices/:deviceId/call", (req, res) => {
   if (!method) {
     return res.status(400).send("Invalid request");
   }
-  jsonrpc
-    .getDevices()
-    .filter((id) => id === deviceId)[0]
-    .call(method, params)
-    .then((result) => {
-      res.json(result);
-    })
-    .catch((error) => {
-      res.status(500).json({ error: error.toString() });
-    });
+  const device = jsonrpc.getDevices().find(device => device.deviceId === deviceId);
+  if (!device) {
+    return res.status(404).send("Device not found");
+  }
+  device.call(method, params)
+    .then((result) => res.json(result))
+    .catch((error) => res.status(500).json({ error: error.toString() }));
 });
 api.post("/devices/:deviceId/setconfig", (req, res) => {
   const { deviceId } = req.params;
