@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import JSONRPCws from "./json-rpc-ws.js ";
+import JSONRPCws from "./json-rpc-ws.js";
 import express from "express";
 import cors from "cors";
 import  bodyParser  from "body-parser";
