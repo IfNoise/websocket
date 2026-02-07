@@ -1,0 +1,34 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Сбор логов из файлов приложения
+  - job_name: iot-server
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: iot-server
+          app: websocket-server
+          __path__: /var/log/app/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            deviceId: deviceId
+            event: event
+      - labels:
+          level:
+          event:
+      - timestamp:
+          source: timestamp
+          format: RFC3339
