@@ -23,6 +23,160 @@ export class DeviceController {
   }
 
   /**
+   * Получить конфигурацию устройства через RPC
+   * GET /api/devices/:deviceId/config
+   */
+  static async getConfig(req, res) {
+    try {
+      const { deviceId } = req.params;
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
+
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Device not found' 
+        });
+      }
+
+      const result = await device.call('Config.Get', {});
+      return res.json({ success: true, data: result.result || result });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'getConfig' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Получить состояние устройства через RPC (read-only)
+   * GET /api/devices/:deviceId/state
+   */
+  static async getState(req, res) {
+    try {
+      const { deviceId } = req.params;
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
+
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Device not found' 
+        });
+      }
+
+      const result = await device.call('Get.State', {});
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'getState' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Получить outputs устройства через RPC (read-only)
+   * GET /api/devices/:deviceId/outputs
+   */
+  static async getOutputs(req, res) {
+    try {
+      const { deviceId } = req.params;
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
+
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Device not found' 
+        });
+      }
+
+      const result = await device.call('Get.Outputs', {});
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'getOutputs' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Универсальный вызов RPC метода на устройстве
+   * POST /api/devices/:deviceId/call
+   * Body: { method, params }
+   */
+  static async call(req, res) {
+    try {
+      const { deviceId } = req.params;
+      const { method, params } = req.body;
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
+
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Device not found' 
+        });
+      }
+
+      const result = await device.call(method, params || {});
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'call' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
    * Получить устройство из БД по ID
    * GET /api/db/devices/:deviceId
    */
@@ -50,14 +204,22 @@ export class DeviceController {
   }
 
   /**
-   * Обновить конфигурацию устройства в БД
-   * PUT /api/db/devices/:deviceId/config
-   * Body: { config }
+   * Обновить конфигурацию устройства через RPC (PATCH)
+   * PATCH /api/devices/:deviceId/config
+   * Body: { config, reboot }
    */
-  static updateConfig(req, res) {
+  static async updateConfig(req, res) {
     try {
       const { deviceId } = req.params;
-      const { config } = req.body;
+      const { config, reboot } = req.body;
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
 
       if (!config) {
         return res.status(400).json({ 
@@ -66,8 +228,35 @@ export class DeviceController {
         });
       }
 
-      const device = DeviceService.updateDeviceConfig(deviceId, config);
-      return res.json({ success: true, data: device });
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+
+      if (!device) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Device not found' 
+        });
+      }
+
+      // Обновляем конфигурацию на устройстве
+      const setResult = await device.call('Config.Set', { config }, 2000);
+      if (setResult && setResult.error) {
+        return res.status(400).json({ success: false, error: setResult.error });
+      }
+
+      device.config = setResult.result || device.config;
+
+      // Сохраняем конфигурацию
+      const saveResult = await device.call('Config.Save', { reboot: reboot || false });
+      if (saveResult && saveResult.error) {
+        return res.status(400).json({ success: false, error: saveResult.error });
+      }
+
+      // Обновляем устройство в фоне
+      device.update?.();
+
+      return res.json({ success: true, message: 'Config updated' });
     } catch (error) {
       apiLogger.error(error, { operation: 'updateConfig' });
       return res.status(500).json({ 
@@ -78,43 +267,25 @@ export class DeviceController {
   }
 
   /**
-   * Обновить состояние устройства в БД
-   * PUT /api/db/devices/:deviceId/state
-   * Body: { state }
+   * Получить компоненты устройства (irrigators, timers, outputs)
+   * GET /api/devices/:deviceId/components
    */
-  static updateState(req, res) {
+  static async getComponents(req, res) {
     try {
       const { deviceId } = req.params;
-      const { state } = req.body;
-
-      if (!state) {
-        return res.status(400).json({ 
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
           success: false, 
-          error: 'state is required' 
+          error: 'WebSocket server not available' 
         });
       }
 
-      const device = DeviceService.updateDeviceState(deviceId, state);
-      return res.json({ success: true, data: device });
-    } catch (error) {
-      apiLogger.error(error, { operation: 'updateState' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
-      });
-    }
-  }
+      const device = wsServer.jsonrpc.findDeviceById
+        ? wsServer.jsonrpc.findDeviceById(deviceId)
+        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
-  /**
-   * Получить компоненты устройства (irrigators, timers, outputs)
-   * GET /api/db/devices/:deviceId/components
-   */
-  static getComponents(req, res) {
-    try {
-      const { deviceId } = req.params;
-
-      const device = DeviceService.getDevice(deviceId);
-      
       if (!device) {
         return res.status(404).json({ 
           success: false, 

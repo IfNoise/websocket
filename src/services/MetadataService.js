@@ -108,4 +108,154 @@ export class MetadataService {
     }
     return results;
   }
+
+  /**
+   * Установить таблицу поливов для ирригатора
+   * Сохраняет в метаданные и ВСЕГДА отправляет на устройство через RPC
+   * @param {string} deviceId 
+   * @param {string} irrigatorKey 
+   * @param {Array} irrigationTable - [{start: number, stop: number}, ...]
+   * @param {Object} strategyParams - параметры стратегии полива
+   * @param {Object} wsServer - WebSocket сервер для RPC вызовов
+   */
+  static async setIrrigationTable(deviceId, irrigatorKey, irrigationTable, strategyParams = {}, wsServer) {
+    // Получить текущие метаданные
+    const currentMetadata = this.getIrrigatorMetadata(deviceId, irrigatorKey);
+    const metadata = currentMetadata?.metadata || {};
+
+    // Обновить irrigation table и параметры стратегии
+    metadata.irrigationTable = irrigationTable;
+    metadata.strategyParams = strategyParams;
+    metadata.lastIrrigationTableUpdate = Date.now();
+
+    // Сохранить в метаданные
+    const saved = this.saveIrrigatorMetadata(deviceId, irrigatorKey, metadata);
+
+    // ВСЕГДА отправить на устройство для синхронизации
+    if (!wsServer) {
+      throw new Error('WebSocket server not available');
+    }
+
+    {
+      const device = wsServer.findDeviceById(deviceId);
+      
+      if (!device) {
+        throw new Error(`Device ${deviceId} not connected`);
+      }
+
+      // Получить имя ирригатора из конфигурации
+      const deviceFromDB = await import('./DeviceService.js').then(m => m.DeviceService.getDevice(deviceId));
+      const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
+      const irrigatorName = irrigatorConfig?.name || irrigatorKey;
+
+      // Отправить RPC команду Set.IrrigationTable
+      const rpcParams = {
+        irrigator_name: irrigatorName,
+        reg_map: JSON.stringify(irrigationTable)
+      };
+
+      try {
+        const result = await device.call('Set.IrrigationTable', rpcParams, 5000);
+        saved.rpcResult = result;
+        saved.syncedToDevice = true;
+      } catch (err) {
+        saved.rpcError = err.message;
+        saved.syncedToDevice = false;
+        throw new Error(`Failed to sync irrigation table to device: ${err.message}`);
+      }
+    }
+
+    return saved;
+  }
+
+  /**
+   * Получить таблицу поливов из метаданных сервера
+   * @param {string} deviceId 
+   * @param {string} irrigatorKey 
+   */
+  static getIrrigationTable(deviceId, irrigatorKey) {
+    const metadata = this.getIrrigatorMetadata(deviceId, irrigatorKey);
+    
+    if (!metadata?.metadata?.irrigationTable) {
+      return null;
+    }
+
+    return {
+      irrigatorKey,
+      irrigationTable: metadata.metadata.irrigationTable,
+      strategyParams: metadata.metadata.strategyParams || {},
+      lastUpdate: metadata.metadata.lastIrrigationTableUpdate,
+      metadata: metadata.metadata
+    };
+  }
+
+  /**
+   * Получить таблицу поливов с устройства через RPC
+   * @param {string} deviceId 
+   * @param {string} irrigatorKey 
+   * @param {Object} wsServer 
+   */
+  static async getIrrigationTableFromDevice(deviceId, irrigatorKey, wsServer) {
+    if (!wsServer) {
+      throw new Error('WebSocket server not available');
+    }
+
+    const device = wsServer.findDeviceById(deviceId);
+    
+    if (!device) {
+      throw new Error(`Device ${deviceId} not connected`);
+    }
+
+    // Получить имя ирригатора из конфигурации
+    const deviceFromDB = await import('./DeviceService.js').then(m => m.DeviceService.getDevice(deviceId));
+    const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
+    const irrigatorName = irrigatorConfig?.name || irrigatorKey;
+
+    // Отправить RPC команду Get.IrrigationTable
+    const rpcParams = {
+      irrigator_name: irrigatorName
+    };
+
+    try {
+      const result = await device.call('Get.IrrigationTable', rpcParams, 5000);
+      
+      // Парсим reg_map если это строка
+      let irrigationTable = result.reg_map;
+      if (typeof irrigationTable === 'string') {
+        irrigationTable = JSON.parse(irrigationTable);
+      }
+
+      return {
+        irrigatorKey,
+        irrigatorName,
+        irrigationTable,
+        deviceResponse: result
+      };
+    } catch (err) {
+      throw new Error(`Failed to get irrigation table from device: ${err.message}`);
+    }
+  }
+
+  /**
+   * Синхронизировать таблицу поливов с устройством
+   * Берет таблицу из метаданных и отправляет на устройство
+   * @param {string} deviceId 
+   * @param {string} irrigatorKey 
+   * @param {Object} wsServer 
+   */
+  static async syncIrrigationTable(deviceId, irrigatorKey, wsServer) {
+    const tableData = this.getIrrigationTable(deviceId, irrigatorKey);
+    
+    if (!tableData) {
+      throw new Error('No irrigation table found in metadata');
+    }
+
+    return this.setIrrigationTable(
+      deviceId,
+      irrigatorKey,
+      tableData.irrigationTable,
+      tableData.strategyParams || {},
+      wsServer
+    );
+  }
 }

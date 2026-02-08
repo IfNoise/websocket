@@ -1,0 +1,1074 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "IoT WebSocket Server API",
+    "description": "REST API для управления IoT устройствами (ESP32) с системой автоматического полива. Поддерживает управление конфигурацией, состоянием и всеми компонентами устройств (irrigators, outputs, sensors, timers, pcfOutputs).",
+    "version": "2.0.0",
+    "contact": {
+      "name": "IfNoise",
+      "url": "https://github.com/IfNoise/websocket"
+    },
+    "license": {
+      "name": "ISC"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3600/api",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Device",
+      "description": "Управление конфигурацией и состоянием устройств"
+    },
+    {
+      "name": "Components",
+      "description": "Универсальный API для работы со всеми компонентами"
+    },
+    {
+      "name": "Irrigators",
+      "description": "API для работы с таблицами поливов ирригаторов"
+    }
+  ],
+  "paths": {
+    "/devices/{deviceId}/config": {
+      "get": {
+        "tags": ["Device"],
+        "summary": "Получить конфигурацию устройства",
+        "description": "Возвращает полную конфигурацию устройства включая все компоненты",
+        "operationId": "getDeviceConfig",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Device"],
+        "summary": "Обновить конфигурацию устройства",
+        "description": "Обновляет конфигурацию на ESP32 устройстве через RPC (Config.Set → Config.Save)",
+        "operationId": "updateDeviceConfig",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["config"],
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "description": "Новая конфигурация устройства"
+                  },
+                  "reboot": {
+                    "type": "boolean",
+                    "description": "Перезагрузить устройство после сохранения",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/state": {
+      "get": {
+        "tags": ["Device"],
+        "summary": "Получить состояние устройства (read-only)",
+        "description": "Возвращает текущее состояние устройства через RPC метод Get.State",
+        "operationId": "getDeviceState",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/outputs": {
+      "get": {
+        "tags": ["Device"],
+        "summary": "Получить outputs устройства (read-only)",
+        "description": "Возвращает состояние всех выходов устройства через RPC метод Get.Outputs",
+        "operationId": "getDeviceOutputs",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Состояние всех outputs"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/call": {
+      "post": {
+        "tags": ["Device"],
+        "summary": "Универсальный RPC вызов",
+        "description": "Выполняет произвольный RPC метод на устройстве",
+        "operationId": "callDeviceMethod",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["method"],
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "description": "Название RPC метода",
+                    "example": "Get.Sensors"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Параметры метода",
+                    "default": {}
+                  }
+                }
+              },
+              "examples": {
+                "getSensors": {
+                  "summary": "Получить данные сенсоров",
+                  "value": {
+                    "method": "Get.Sensors",
+                    "params": {}
+                  }
+                },
+                "setOutput": {
+                  "summary": "Установить состояние выхода",
+                  "value": {
+                    "method": "Set.Output",
+                    "params": {
+                      "key": "out1",
+                      "state": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "Результат выполнения метода"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/components": {
+      "get": {
+        "tags": ["Device"],
+        "summary": "Получить список всех компонентов устройства",
+        "description": "Возвращает структурированный список всех компонентов: irrigators, outputs, pcfOutputs, sensors, timers",
+        "operationId": "getDeviceComponents",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "irrigators": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComponentInfo"
+                      }
+                    },
+                    "outputs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComponentInfo"
+                      }
+                    },
+                    "pcfOutputs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComponentInfo"
+                      }
+                    },
+                    "sensors": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComponentInfo"
+                      }
+                    },
+                    "timers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComponentInfo"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/{componentType}/{componentKey}": {
+      "get": {
+        "tags": ["Components"],
+        "summary": "Получить данные компонента (универсальный)",
+        "description": "Универсальный метод для получения данных любого типа компонента. Поддерживает получение из БД (metadata) или напрямую с устройства (device).",
+        "operationId": "getComponentData",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "$ref": "#/components/parameters/ComponentType"
+          },
+          {
+            "$ref": "#/components/parameters/ComponentKey"
+          },
+          {
+            "$ref": "#/components/parameters/Source"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/IrrigatorData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/OutputData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SensorData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GenericComponentData"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Components"],
+        "summary": "Обновить данные компонента (универсальный)",
+        "description": "Универсальный метод для обновления данных любого типа компонента. Автоматически сохраняет в БД и синхронизирует с устройством (где применимо).",
+        "operationId": "setComponentData",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "$ref": "#/components/parameters/ComponentType"
+          },
+          {
+            "$ref": "#/components/parameters/ComponentKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/IrrigatorDataInput"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OutputDataInput"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SensorDataInput"
+                  },
+                  {
+                    "type": "object",
+                    "description": "Данные для любого другого типа компонента"
+                  }
+                ]
+              },
+              "examples": {
+                "irrigator": {
+                  "summary": "Irrigator",
+                  "value": {
+                    "irrigationTable": [
+                      { "start": 43200, "stop": 43800 },
+                      { "start": 72000, "stop": 72600 }
+                    ],
+                    "strategyParams": {
+                      "lightsOnTimeSeconds": 28800,
+                      "dripperFlowRateLph": 2,
+                      "targetPeakPercent": 85
+                    }
+                  }
+                },
+                "output": {
+                  "summary": "Output",
+                  "value": {
+                    "description": "Main water pump",
+                    "maxPower": 500,
+                    "enabled": true,
+                    "type": "pump"
+                  }
+                },
+                "pcfOutput": {
+                  "summary": "PCF Output",
+                  "value": {
+                    "description": "LED strip 1",
+                    "zone": "grow-area-1",
+                    "channel": 1,
+                    "enabled": true
+                  }
+                },
+                "sensor": {
+                  "summary": "Sensor",
+                  "value": {
+                    "description": "Temperature sensor",
+                    "unit": "celsius",
+                    "minValue": 0,
+                    "maxValue": 50
+                  }
+                },
+                "timer": {
+                  "summary": "Timer",
+                  "value": {
+                    "description": "Light timer",
+                    "schedule": [{ "start": 28800, "stop": 72000 }],
+                    "enabled": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "irrigators irr1 data saved"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/irrigators/{irrigatorKey}/irrigation-table": {
+      "post": {
+        "tags": ["Irrigators"],
+        "summary": "Установить таблицу поливов",
+        "description": "Устанавливает таблицу поливов и параметры стратегии для ирригатора. Сохраняет в БД и синхронизирует с устройством через RPC метод Set.IrrigationTable.",
+        "operationId": "setIrrigationTable",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "name": "irrigatorKey",
+            "in": "path",
+            "required": true,
+            "description": "Ключ ирригатора (irr1, irr2, ...)",
+            "schema": {
+              "type": "string",
+              "example": "irr1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IrrigatorDataInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Irrigation table saved and synchronized with device"
+                    },
+                    "irrigationTable": {
+                      "$ref": "#/components/schemas/IrrigationTable"
+                    },
+                    "strategyParams": {
+                      "$ref": "#/components/schemas/StrategyParams"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "get": {
+        "tags": ["Irrigators"],
+        "summary": "Получить таблицу поливов",
+        "description": "Получает таблицу поливов и параметры стратегии ирригатора из БД или напрямую с устройства.",
+        "operationId": "getIrrigationTable",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "name": "irrigatorKey",
+            "in": "path",
+            "required": true,
+            "description": "Ключ ирригатора (irr1, irr2, ...)",
+            "schema": {
+              "type": "string",
+              "example": "irr1"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Source"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IrrigatorData"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "DeviceId": {
+        "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "description": "Уникальный идентификатор устройства",
+        "schema": {
+          "type": "string",
+          "example": "esp32_A8A154"
+        }
+      },
+      "ComponentType": {
+        "name": "componentType",
+        "in": "path",
+        "required": true,
+        "description": "Тип компонента",
+        "schema": {
+          "type": "string",
+          "enum": ["irrigators", "outputs", "pcfOutputs", "sensors", "timers"],
+          "example": "irrigators"
+        }
+      },
+      "ComponentKey": {
+        "name": "componentKey",
+        "in": "path",
+        "required": true,
+        "description": "Ключ компонента",
+        "schema": {
+          "type": "string",
+          "example": "irr1"
+        }
+      },
+      "Source": {
+        "name": "source",
+        "in": "query",
+        "required": false,
+        "description": "Источник данных",
+        "schema": {
+          "type": "string",
+          "enum": ["metadata", "device"],
+          "default": "metadata"
+        }
+      }
+    },
+    "schemas": {
+      "DeviceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "esp32_A8A154"
+          },
+          "config": {
+            "type": "object",
+            "description": "Конфигурация устройства"
+          },
+          "state": {
+            "type": "object",
+            "description": "Состояние устройства"
+          },
+          "connected": {
+            "type": "boolean",
+            "example": true
+          },
+          "lastSeen": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ComponentInfo": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "irr1"
+          },
+          "name": {
+            "type": "string",
+            "example": "Irrigator 1"
+          }
+        }
+      },
+      "IrrigationTable": {
+        "type": "array",
+        "description": "Массив интервалов полива",
+        "items": {
+          "type": "object",
+          "required": ["start", "stop"],
+          "properties": {
+            "start": {
+              "type": "integer",
+              "description": "Время начала полива (секунды с начала дня, 0-86400)",
+              "minimum": 0,
+              "maximum": 86400,
+              "example": 43200
+            },
+            "stop": {
+              "type": "integer",
+              "description": "Время окончания полива (секунды с начала дня, 0-86400)",
+              "minimum": 0,
+              "maximum": 86400,
+              "example": 43800
+            }
+          }
+        },
+        "example": [
+          { "start": 43200, "stop": 43800 },
+          { "start": 72000, "stop": 72600 }
+        ]
+      },
+      "StrategyParams": {
+        "type": "object",
+        "description": "Параметры стратегии полива",
+        "properties": {
+          "lightsOnTimeSeconds": {
+            "type": "number",
+            "description": "Время начала дня в секундах от 00:00 (например, 28800 = 08:00)",
+            "example": 28800
+          },
+          "lightsOffTimeSeconds": {
+            "type": "number",
+            "description": "Время окончания дня в секундах от 00:00 (например, 72000 = 20:00)",
+            "example": 72000
+          },
+          "substrateWaterCapacityLiters": {
+            "type": "number",
+            "description": "Водоёмкость субстрата (литры)",
+            "example": 10
+          },
+          "dripperFlowRateLph": {
+            "type": "number",
+            "description": "Скорость потока капельницы (л/ч)",
+            "example": 2
+          },
+          "emittersPerPot": {
+            "type": "integer",
+            "description": "Количество капельниц на горшок",
+            "example": 2
+          },
+          "waterLossRateLitersPerHour": {
+            "type": "number",
+            "description": "Скорость потери воды (л/ч)",
+            "example": 0.1
+          },
+          "evaporationCoefficient": {
+            "type": "number",
+            "description": "Коэффициент испарения",
+            "example": 1
+          },
+          "initialDrybackPercent": {
+            "type": "number",
+            "description": "Начальный dryback (%)",
+            "example": 20
+          },
+          "targetPeakPercent": {
+            "type": "number",
+            "description": "Целевой пик насыщения (%)",
+            "example": 85
+          },
+          "maintenanceMinPercent": {
+            "type": "number",
+            "description": "Минимум для поддержания (%)",
+            "example": 60
+          },
+          "p1StartDelayMinutes": {
+            "type": "number",
+            "description": "Задержка старта фазы P1 (минуты)",
+            "example": 30
+          },
+          "p1ShotVolumePercent": {
+            "type": "number",
+            "description": "Объём выстрела P1 (%)",
+            "example": 5
+          },
+          "p1ShotIntervalMinutes": {
+            "type": "number",
+            "description": "Интервал между выстрелами P1 (минуты)",
+            "example": 15
+          },
+          "p2TargetDrainagePercent": {
+            "type": "number",
+            "description": "Целевой дренаж P2 (%)",
+            "example": 10
+          },
+          "p3DrybackMinutes": {
+            "type": "number",
+            "description": "Длительность dryback P3 (минуты)",
+            "example": 60
+          }
+        }
+      },
+      "IrrigatorData": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "irrigationTable": {
+            "$ref": "#/components/schemas/IrrigationTable"
+          },
+          "strategyParams": {
+            "$ref": "#/components/schemas/StrategyParams"
+          },
+          "lastUpdate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["metadata", "device"],
+            "example": "metadata"
+          }
+        }
+      },
+      "IrrigatorDataInput": {
+        "type": "object",
+        "required": ["irrigationTable"],
+        "properties": {
+          "irrigationTable": {
+            "$ref": "#/components/schemas/IrrigationTable"
+          },
+          "strategyParams": {
+            "$ref": "#/components/schemas/StrategyParams"
+          }
+        }
+      },
+      "OutputData": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "example": "Main water pump"
+          },
+          "maxPower": {
+            "type": "number",
+            "example": 500
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "type": {
+            "type": "string",
+            "enum": ["pump", "valve", "light", "other"],
+            "example": "pump"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["metadata", "device"],
+            "example": "metadata"
+          }
+        }
+      },
+      "OutputDataInput": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "maxPower": {
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["pump", "valve", "light", "other"]
+          }
+        }
+      },
+      "SensorData": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "example": "Temperature sensor"
+          },
+          "unit": {
+            "type": "string",
+            "example": "celsius"
+          },
+          "minValue": {
+            "type": "number",
+            "example": 0
+          },
+          "maxValue": {
+            "type": "number",
+            "example": 50
+          },
+          "calibration": {
+            "type": "object"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["metadata", "device"],
+            "example": "metadata"
+          }
+        }
+      },
+      "SensorDataInput": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "minValue": {
+            "type": "number"
+          },
+          "maxValue": {
+            "type": "number"
+          },
+          "calibration": {
+            "type": "object"
+          }
+        }
+      },
+      "GenericComponentData": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "source": {
+            "type": "string",
+            "enum": ["metadata", "device"],
+            "example": "metadata"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Error message"
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Success": {
+        "description": "Успешная операция",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Ресурс не найден",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "success": false,
+              "error": "Device not found"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Ошибка валидации",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidationErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Внутренняя ошибка сервера",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "success": false,
+              "error": "Internal server error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

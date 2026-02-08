@@ -202,6 +202,102 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/meta
   }'
 ```
 
+### Irrigation Table API
+
+#### `POST /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table`
+Установить таблицу поливов для ирригатора
+- Сохраняет в метаданные на сервере
+- **АВТОМАТИЧЕСКИ** отправляет на устройство через RPC `Set.IrrigationTable`
+- Сохраняет параметры стратегии для истории и редактирования
+
+```bash
+curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrigation-table \
+  -H "Content-Type: application/json" \
+  -d '{
+    "irrigationTable": [
+      {"start": 43200, "stop": 43800},
+      {"start": 72000, "stop": 72600}
+    ],
+    "strategyParams": {
+      "lightsOnTimeSeconds": 28800,
+      "lightsOffTimeSeconds": 72000,
+      "substrateWaterCapacityLiters": 10,
+      "dripperFlowRateLph": 2,
+      "emittersPerPot": 2,
+      "waterLossRateLitersPerHour": 0.1,
+      "evaporationCoefficient": 1,
+      "initialDrybackPercent": 20,
+      "targetPeakPercent": 85,
+      "maintenanceMinPercent": 60,
+      "p1StartDelayMinutes": 30,
+      "p1ShotVolumePercent": 5,
+      "p1ShotIntervalMinutes": 15,
+      "p2TargetDrainagePercent": 10,
+      "p3DrybackMinutes": 60
+    }
+  }'
+```
+
+Подробнее о параметрах стратегии: [STRATEGY_PARAMS.md](STRATEGY_PARAMS.md)
+
+Формат таблицы:
+- `start` - время начала полива (секунды с начала дня, 0-86400)
+- `stop` - время окончания полива (секунды с начала дня, 0-86400)
+
+#### `GET /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table`
+Получить таблицу поливов
+
+Query параметры:
+- `source=metadata` (default) - получить из метаданных сервера
+- `source=device` - получить напрямую с устройства через RPC `Get.IrrigationTable`
+
+```bash
+# Из метаданных
+curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrigation-table
+
+# С устройства
+curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrigation-table?source=device
+```
+
+#### `PUT /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table/sync`
+Синхронизировать таблицу поливов с устройством
+- Берет таблицу из метаданных сервера
+- Отправляет на устройство через RPC
+
+```bash
+curl -X PUT http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrigation-table/sync
+```
+
+## RPC интеграция
+
+### Отправка таблицы на устройство
+
+При вызове POST `/irrigation-table` с `syncToDevice: true`, сервер автоматически вызывает:
+
+```javascript
+device.call('Set.IrrigationTable', {
+  irrigator_name: 'Irrigator1',  // из config.irr1.name
+  reg_map: '[{"start":43200,"stop":43800}]'
+});
+```
+
+### Получение таблицы с устройства
+
+При вызове GET `/irrigation-table?source=device`, сервер вызывает:
+
+```javascript
+device.call('Get.IrrigationTable', {
+  irrigator_name: 'Irrigator1'
+});
+```
+
+Устройство возвращает:
+```json
+{
+  "reg_map": "[{\"start\":43200,\"stop\":43800}]"
+}
+```
+
 ## Пример использования
 
 ### 1. Сохранение таблицы поливов для ирригатора

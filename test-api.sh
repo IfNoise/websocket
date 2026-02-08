@@ -123,4 +123,52 @@ curl -s -X POST "${BASE_URL}/devices/${DEVICE_ID}/metadata/bulk" \
   }' | jq '.'
 echo ""
 
+echo "=== Тестирование Irrigation Table API ==="
+echo ""
+
+# 11. Установить таблицу поливов для ирригатора irr1
+echo "11. Установить таблицу поливов для irr1 (автосинхронизация с устройством):"
+curl -s -X POST "${BASE_URL}/devices/${DEVICE_ID}/irrigators/irr1/irrigation-table" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "irrigationTable": [
+      {"start": 43200, "stop": 43800},
+      {"start": 72000, "stop": 72600}
+    ],
+    "strategyParams": {
+      "lightsOnTimeSeconds": 28800,
+      "dripperFlowRateLph": 2,
+      "targetPeakPercent": 85
+    }
+  }' | jq '.'
+echo ""
+
+# 12. Получить таблицу поливов из метаданных
+echo "12. Получить таблицу поливов irr1 из метаданных сервера:"
+curl -s "${BASE_URL}/devices/${DEVICE_ID}/irrigators/irr1/irrigation-table" | jq '.'
+echo ""
+
+# 13. Получить таблицу поливов с устройства
+echo "13. Получить таблицу поливов irr1 с устройства (через RPC):"
+curl -s "${BASE_URL}/devices/${DEVICE_ID}/irrigators/irr1/irrigation-table?source=device" | jq '.'
+echo ""
+
+# 14. Установить таблицу поливов без отправки на устройство
+echo "14. Установить таблицу поливов для irr2 (с автосинхронизацией):"
+curl -s -X POST "${BASE_URL}/devices/${DEVICE_ID}/irrigators/irr2/irrigation-table" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "irrigationTable": [
+      {"start": 28800, "stop": 29400},
+      {"start": 57600, "stop": 58200},
+      {"start": 79200, "stop": 79800}
+    ]
+  }' | jq '.'
+echo ""
+
+# 15. Синхронизировать таблицу поливов с устройством
+echo "15. Синхронизировать таблицу поливов irr2 с устройством:"
+curl -s -X PUT "${BASE_URL}/devices/${DEVICE_ID}/irrigators/irr2/irrigation-table/sync" | jq '.'
+echo ""
+
 echo "=== Тестирование завершено ==="

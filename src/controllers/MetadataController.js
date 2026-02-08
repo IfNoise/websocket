@@ -213,4 +213,237 @@ export class MetadataController {
       });
     }
   }
+
+  /**
+   * Установить таблицу поливов для ирригатора
+   * POST /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table
+   * Body: { 
+   *   irrigationTable: [{start: number, stop: number}, ...],
+   *   strategyParams: { параметры стратегии полива }
+   * }
+   * Автоматически синхронизирует с устройством через RPC
+   */
+  static async setIrrigationTable(req, res) {
+    try {
+      const { deviceId, irrigatorKey } = req.params;
+      const { irrigationTable, strategyParams = {} } = req.body;
+
+      if (!Array.isArray(irrigationTable)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'irrigationTable must be an array' 
+        });
+      }
+
+      // Сохранить таблицу поливов и параметры стратегии в метаданные
+      // Автоматически синхронизирует с устройством
+      const result = await MetadataService.setIrrigationTable(
+        deviceId,
+        irrigatorKey,
+        irrigationTable,
+        strategyParams,
+        req.app.locals.wsServer
+      );
+
+      return res.json({ 
+        success: true, 
+        data: result,
+        message: 'Irrigation table saved and synchronized with device'
+      });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'setIrrigationTable' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Получить таблицу поливов ирригатора
+   * GET /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table
+   * Query: ?source=metadata|device (default: metadata)
+   */
+  static async getIrrigationTable(req, res) {
+    try {
+      const { deviceId, irrigatorKey } = req.params;
+      const { source = 'metadata' } = req.query;
+
+      let irrigationTable;
+
+      if (source === 'device') {
+        // Получить с устройства через RPC
+        irrigationTable = await MetadataService.getIrrigationTableFromDevice(
+          deviceId,
+          irrigatorKey,
+          req.app.locals.wsServer
+        );
+      } else {
+        // Получить из метаданных сервера
+        irrigationTable = MetadataService.getIrrigationTable(deviceId, irrigatorKey);
+      }
+
+      if (!irrigationTable) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Irrigation table not found' 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        data: irrigationTable,
+        source
+      });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'getIrrigationTable' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Синхронизировать таблицу поливов с устройством
+   * PUT /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table/sync
+   */
+  static async syncIrrigationTable(req, res) {
+    try {
+      const { deviceId, irrigatorKey } = req.params;
+
+      const result = await MetadataService.syncIrrigationTable(
+        deviceId,
+        irrigatorKey,
+        req.app.locals.wsServer
+      );
+
+      return res.json({ 
+        success: true, 
+        data: result,
+        message: 'Irrigation table synchronized with device'
+      });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'syncIrrigationTable' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  // ==================== Universal Component API ====================
+
+  /**
+   * Универсальный метод для получения данных любого компонента
+   * GET /api/devices/:deviceId/:componentType/:componentKey
+   */
+  static async getComponentData(req, res) {
+    try {
+      const { deviceId, componentType, componentKey } = req.params;
+      const { source = 'metadata' } = req.query;
+
+      // Специальная обработка для irrigators с irrigation-table
+      if (componentType === 'irrigators' || componentType === 'irrigator') {
+        const metadata = MetadataService.getIrrigatorMetadata(deviceId, componentKey);
+        
+        if (!metadata) {
+          return res.status(404).json({ 
+            success: false, 
+            error: `Irrigator ${componentKey} metadata not found` 
+          });
+        }
+
+        // Если запрошено с устройства
+        if (source === 'device') {
+          try {
+            const deviceData = await MetadataService.getIrrigationTableFromDevice(
+              deviceId,
+              componentKey,
+              req.app.locals.wsServer
+            );
+            return res.json({ 
+              success: true, 
+              ...deviceData,
+              source: 'device'
+            });
+          } catch (error) {
+            // Если устройство не доступно, вернуть из метаданных
+            return res.json({ 
+              success: true, 
+              ...metadata.metadata,
+              source: 'metadata',
+              note: 'Device unavailable, returned from cache'
+            });
+          }
+        }
+
+        return res.json({ 
+          success: true, 
+          ...metadata.metadata,
+          source: 'metadata'
+        });
+      }
+
+      // Для остальных компонентов - просто метаданные
+      const metadata = MetadataService.getMetadata(deviceId, componentType, componentKey);
+      
+      if (!metadata) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Component ${componentType}/${componentKey} not found` 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        ...metadata.metadata,
+        source: 'metadata'
+      });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'getComponentData' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Универсальный метод для установки данных любого компонента
+   * POST /api/devices/:deviceId/:componentType/:componentKey
+   */
+  static async setComponentData(req, res) {
+    try {
+      const { deviceId, componentType, componentKey } = req.params;
+      const data = req.body;
+
+      // Специальная обработка для irrigators с irrigation-table
+      if ((componentType === 'irrigators' || componentType === 'irrigator') && data.irrigationTable) {
+        return MetadataController.setIrrigationTable(req, res);
+      }
+
+      // Для остальных компонентов - сохранить метаданные
+      const result = MetadataService.saveMetadata(
+        deviceId,
+        componentType,
+        componentKey,
+        data
+      );
+
+      metadataLogger.save(deviceId, componentType, componentKey);
+
+      return res.json({ 
+        success: true, 
+        message: `${componentType} ${componentKey} data saved`,
+        data: result 
+      });
+    } catch (error) {
+      apiLogger.error(error, { operation: 'setComponentData' });
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  }
 }

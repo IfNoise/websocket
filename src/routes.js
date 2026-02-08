@@ -20,27 +20,20 @@ const validate = (req, res, next) => {
   next();
 };
 
-// ==================== Device DB Routes ====================
+// ==================== Device Routes ====================
+// API для управления конфигурациями и получения статусов
 
-// Получить все устройства из БД
+// Получить конфигурацию устройства
 router.get(
-  '/db/devices',
-  [query('status').optional().isString()],
-  validate,
-  DeviceController.getAllDevices
-);
-
-// Получить устройство из БД
-router.get(
-  '/db/devices/:deviceId',
+  '/devices/:deviceId/config',
   [param('deviceId').isString().trim()],
   validate,
-  DeviceController.getDevice
+  DeviceController.getConfig
 );
 
-// Обновить конфигурацию устройства в БД
-router.put(
-  '/db/devices/:deviceId/config',
+// Обновить конфигурацию устройства
+router.patch(
+  '/devices/:deviceId/config',
   [
     param('deviceId').isString().trim(),
     body('config').isObject()
@@ -49,121 +42,96 @@ router.put(
   DeviceController.updateConfig
 );
 
-// Обновить состояние устройства в БД
-router.put(
-  '/db/devices/:deviceId/state',
-  [
-    param('deviceId').isString().trim(),
-    body('state').isObject()
-  ],
+// Получить состояние устройства (read-only)
+router.get(
+  '/devices/:deviceId/state',
+  [param('deviceId').isString().trim()],
   validate,
-  DeviceController.updateState
+  DeviceController.getState
 );
 
-// Получить компоненты устройства
+// Получить outputs устройства (read-only)
 router.get(
-  '/db/devices/:deviceId/components',
+  '/devices/:deviceId/outputs',
+  [param('deviceId').isString().trim()],
+  validate,
+  DeviceController.getOutputs
+);
+
+// Универсальный вызов RPC метода на устройстве
+router.post(
+  '/devices/:deviceId/call',
+  [
+    param('deviceId').isString().trim(),
+    body('method').isString().trim().matches(/^[a-zA-Z0-9_.:-]{1,100}$/),
+    body('params').optional().isObject()
+  ],
+  validate,
+  DeviceController.call
+);
+
+// Получить компоненты устройства (irrigators, outputs, sensors и т.д.)
+router.get(
+  '/devices/:deviceId/components',
   [param('deviceId').isString().trim()],
   validate,
   DeviceController.getComponents
 );
 
-// Удалить устройство из БД
-router.delete(
-  '/db/devices/:deviceId',
-  [param('deviceId').isString().trim()],
-  validate,
-  DeviceController.deleteDevice
-);
+// ==================== Universal Component Routes ====================
+// Работа с любыми компонентами: irrigators, outputs, sensors, timers, pcfOutputs
 
-// ==================== Metadata Routes ====================
-
-// Получить все метаданные устройства
+// Получить метаданные компонента
 router.get(
-  '/devices/:deviceId/metadata',
-  [
-    param('deviceId').isString().trim(),
-    query('componentType').optional().isString()
-  ],
-  validate,
-  MetadataController.getDeviceMetadata
-);
-
-// Получить метаданные конкретного компонента
-router.get(
-  '/devices/:deviceId/metadata/:componentType/:componentKey',
+  '/devices/:deviceId/:componentType/:componentKey',
   [
     param('deviceId').isString().trim(),
     param('componentType').isString().trim(),
-    param('componentKey').isString().trim()
+    param('componentKey').isString().trim(),
+    query('source').optional().isIn(['metadata', 'device'])
   ],
   validate,
-  MetadataController.getComponentMetadata
+  MetadataController.getComponentData
 );
 
-// Сохранить метаданные компонента
-router.post(
-  '/devices/:deviceId/metadata',
+// Обновить конфигурацию компонента
+router.patch(
+  '/devices/:deviceId/:componentType/:componentKey',
   [
     param('deviceId').isString().trim(),
-    body('componentType').isString().trim(),
-    body('componentKey').isString().trim(),
-    body('metadata').isObject()
+    param('componentType').isString().trim(),
+    param('componentKey').isString().trim(),
+    body().isObject()
   ],
   validate,
-  MetadataController.saveMetadata
+  MetadataController.setComponentData
 );
 
-// Пакетное сохранение метаданных
-router.post(
-  '/devices/:deviceId/metadata/bulk',
-  [
-    param('deviceId').isString().trim(),
-    body('metadataList').isArray()
-  ],
-  validate,
-  MetadataController.saveBulkMetadata
-);
+// ==================== Irrigation Table Routes ====================
+// API для работы с таблицами поливов
 
-// Удалить метаданные
-router.delete(
-  '/metadata/:id',
-  [param('id').isInt()],
-  validate,
-  MetadataController.deleteMetadata
-);
-
-// ==================== Irrigator-specific Routes ====================
-
-// Получить все метаданные ирригаторов устройства
+// Получить таблицу поливов ирригатора
 router.get(
-  '/devices/:deviceId/irrigators/metadata',
-  [param('deviceId').isString().trim()],
-  validate,
-  MetadataController.getIrrigatorsMetadata
-);
-
-// Получить метаданные ирригатора
-router.get(
-  '/devices/:deviceId/irrigators/:irrigatorKey/metadata',
-  [
-    param('deviceId').isString().trim(),
-    param('irrigatorKey').isString().trim()
-  ],
-  validate,
-  MetadataController.getIrrigatorMetadata
-);
-
-// Сохранить метаданные ирригатора
-router.post(
-  '/devices/:deviceId/irrigators/:irrigatorKey/metadata',
+  '/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table',
   [
     param('deviceId').isString().trim(),
     param('irrigatorKey').isString().trim(),
-    body('metadata').isObject()
+    query('source').optional().isIn(['metadata', 'device'])
   ],
   validate,
-  MetadataController.saveIrrigatorMetadata
+  MetadataController.getIrrigationTable
+);
+
+// Установить таблицу поливов для ирригатора
+router.post(
+  '/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table',
+  [
+    param('deviceId').isString().trim(),
+    param('irrigatorKey').isString().trim(),
+    body('irrigationTable').isArray()
+  ],
+  validate,
+  MetadataController.setIrrigationTable
 );
 
 export default router;
