@@ -1,7 +1,7 @@
-import express from 'express';
-import { MetadataController } from './controllers/MetadataController.js';
-import { DeviceController } from './controllers/DeviceController.js';
-import { param, body, query, validationResult } from 'express-validator';
+import express from "express";
+import { MetadataController } from "./controllers/MetadataController.js";
+import { DeviceController } from "./controllers/DeviceController.js";
+import { param, body, query, validationResult } from "express-validator";
 
 const router = express.Router();
 
@@ -11,10 +11,10 @@ const router = express.Router();
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Validation failed', 
-      details: errors.array() 
+    return res.status(400).json({
+      success: false,
+      error: "Validation failed",
+      details: errors.array(),
     });
   }
   next();
@@ -24,64 +24,61 @@ const validate = (req, res, next) => {
 // API для управления конфигурациями и получения статусов
 
 // Получить список всех устройств
-router.get(
-  '/devices',
-  DeviceController.getAllDevices
-);
+router.get("/devices", DeviceController.getAllDevices);
 
 // Получить конфигурацию устройства
 router.get(
-  '/devices/:deviceId/config',
-  [param('deviceId').isString().trim()],
+  "/devices/:deviceId/config",
+  [param("deviceId").isString().trim()],
   validate,
-  DeviceController.getConfig
+  DeviceController.getConfig,
 );
 
 // Обновить конфигурацию устройства
 router.patch(
-  '/devices/:deviceId/config',
-  [
-    param('deviceId').isString().trim(),
-    body('config').isObject()
-  ],
+  "/devices/:deviceId/config",
+  [param("deviceId").isString().trim(), body("config").isObject()],
   validate,
-  DeviceController.updateConfig
+  DeviceController.updateConfig,
 );
 
 // Получить состояние устройства (read-only)
 router.get(
-  '/devices/:deviceId/state',
-  [param('deviceId').isString().trim()],
+  "/devices/:deviceId/state",
+  [param("deviceId").isString().trim()],
   validate,
-  DeviceController.getState
+  DeviceController.getState,
 );
 
 // Получить outputs устройства (read-only)
 router.get(
-  '/devices/:deviceId/outputs',
-  [param('deviceId').isString().trim()],
+  "/devices/:deviceId/outputs",
+  [param("deviceId").isString().trim()],
   validate,
-  DeviceController.getOutputs
+  DeviceController.getOutputs,
 );
 
 // Универсальный вызов RPC метода на устройстве
 router.post(
-  '/devices/:deviceId/call',
+  "/devices/:deviceId/call",
   [
-    param('deviceId').isString().trim(),
-    body('method').isString().trim().matches(/^[a-zA-Z0-9_.:-]{1,100}$/),
-    body('params').optional().isObject()
+    param("deviceId").isString().trim(),
+    body("method")
+      .isString()
+      .trim()
+      .matches(/^[a-zA-Z0-9_.:-]{1,100}$/),
+    body("params").optional().isObject(),
   ],
   validate,
-  DeviceController.call
+  DeviceController.call,
 );
 
 // Получить компоненты устройства (irrigators, outputs, sensors и т.д.)
 router.get(
-  '/devices/:deviceId/components',
-  [param('deviceId').isString().trim()],
+  "/devices/:deviceId/components",
+  [param("deviceId").isString().trim()],
   validate,
-  DeviceController.getComponents
+  DeviceController.getComponents,
 );
 
 // ==================== Universal Component Routes ====================
@@ -89,28 +86,28 @@ router.get(
 
 // Получить метаданные компонента
 router.get(
-  '/devices/:deviceId/:componentType/:componentKey',
+  "/devices/:deviceId/:componentType/:componentKey",
   [
-    param('deviceId').isString().trim(),
-    param('componentType').isString().trim(),
-    param('componentKey').isString().trim(),
-    query('source').optional().isIn(['metadata', 'device'])
+    param("deviceId").isString().trim(),
+    param("componentType").isString().trim(),
+    param("componentKey").isString().trim(),
+    query("source").optional().isIn(["metadata", "device"]),
   ],
   validate,
-  MetadataController.getComponentData
+  MetadataController.getComponentData,
 );
 
 // Обновить конфигурацию компонента
 router.patch(
-  '/devices/:deviceId/:componentType/:componentKey',
+  "/devices/:deviceId/:componentType/:componentKey",
   [
-    param('deviceId').isString().trim(),
-    param('componentType').isString().trim(),
-    param('componentKey').isString().trim(),
-    body().isObject()
+    param("deviceId").isString().trim(),
+    param("componentType").isString().trim(),
+    param("componentKey").isString().trim(),
+    body().isObject(),
   ],
   validate,
-  MetadataController.setComponentData
+  MetadataController.setComponentData,
 );
 
 // ==================== Irrigation Table Routes ====================
@@ -118,26 +115,26 @@ router.patch(
 
 // Получить таблицу поливов ирригатора
 router.get(
-  '/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table',
+  "/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table",
   [
-    param('deviceId').isString().trim(),
-    param('irrigatorKey').isString().trim(),
-    query('source').optional().isIn(['metadata', 'device'])
+    param("deviceId").isString().trim(),
+    param("irrigatorKey").isString().trim(),
+    query("source").optional().isIn(["metadata", "device"]),
   ],
   validate,
-  MetadataController.getIrrigationTable
+  MetadataController.getIrrigationTable,
 );
 
 // Установить таблицу поливов для ирригатора
 router.post(
-  '/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table',
+  "/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table",
   [
-    param('deviceId').isString().trim(),
-    param('irrigatorKey').isString().trim(),
-    body('irrigationTable').isArray()
+    param("deviceId").isString().trim(),
+    param("irrigatorKey").isString().trim(),
+    body("irrigationTable").isArray(),
   ],
   validate,
-  MetadataController.setIrrigationTable
+  MetadataController.setIrrigationTable,
 );
 
 export default router;

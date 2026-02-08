@@ -1,5 +1,5 @@
-import { DeviceService } from '../services/DeviceService.js';
-import { apiLogger } from '../utils/logger.js';
+import { DeviceService } from "../services/DeviceService.js";
+import { apiLogger } from "../utils/logger.js";
 
 export class DeviceController {
   /**
@@ -9,16 +9,16 @@ export class DeviceController {
   static getAllDevices(req, res) {
     try {
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
       const devices = wsServer.jsonrpc.getDevices() || [];
-      
+
       return res.json({
         success: true,
         data: devices.map((device) => ({
@@ -26,13 +26,13 @@ export class DeviceController {
           address: device.address,
           status: device.status,
           config: device.config,
-        }))
+        })),
       });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getAllDevices' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getAllDevices" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -45,11 +45,11 @@ export class DeviceController {
     try {
       const { deviceId } = req.params;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
@@ -58,19 +58,19 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
-      const result = await device.call('Config.Get', {});
+      const result = await device.call("Config.Get", {});
       return res.json({ success: true, data: result.result || result });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getConfig' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getConfig" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -83,11 +83,11 @@ export class DeviceController {
     try {
       const { deviceId } = req.params;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
@@ -96,19 +96,19 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
-      const result = await device.call('Get.State', {});
+      const result = await device.call("Get.State", {});
       return res.json({ success: true, data: result });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getState' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getState" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -121,11 +121,11 @@ export class DeviceController {
     try {
       const { deviceId } = req.params;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
@@ -134,19 +134,19 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
-      const result = await device.call('Get.Outputs', {});
+      const result = await device.call("Get.Outputs", {});
       return res.json({ success: true, data: result });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getOutputs' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getOutputs" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -161,11 +161,11 @@ export class DeviceController {
       const { deviceId } = req.params;
       const { method, params } = req.body;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
@@ -174,19 +174,19 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
       const result = await device.call(method, params || {});
       return res.json({ success: true, data: result });
     } catch (error) {
-      apiLogger.error(error, { operation: 'call' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "call" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -200,20 +200,20 @@ export class DeviceController {
       const { deviceId } = req.params;
 
       const device = DeviceService.getDevice(deviceId);
-      
+
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
       return res.json({ success: true, data: device });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getDevice' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getDevice" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -228,18 +228,18 @@ export class DeviceController {
       const { deviceId } = req.params;
       const { config, reboot } = req.body;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
       if (!config) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'config is required' 
+        return res.status(400).json({
+          success: false,
+          error: "config is required",
         });
       }
 
@@ -248,14 +248,14 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
       // Обновляем конфигурацию на устройстве
-      const setResult = await device.call('Config.Set', { config }, 2000);
+      const setResult = await device.call("Config.Set", { config }, 2000);
       if (setResult && setResult.error) {
         return res.status(400).json({ success: false, error: setResult.error });
       }
@@ -263,20 +263,24 @@ export class DeviceController {
       device.config = setResult.result || device.config;
 
       // Сохраняем конфигурацию
-      const saveResult = await device.call('Config.Save', { reboot: reboot || false });
+      const saveResult = await device.call("Config.Save", {
+        reboot: reboot || false,
+      });
       if (saveResult && saveResult.error) {
-        return res.status(400).json({ success: false, error: saveResult.error });
+        return res
+          .status(400)
+          .json({ success: false, error: saveResult.error });
       }
 
       // Обновляем устройство в фоне
       device.update?.();
 
-      return res.json({ success: true, message: 'Config updated' });
+      return res.json({ success: true, message: "Config updated" });
     } catch (error) {
-      apiLogger.error(error, { operation: 'updateConfig' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "updateConfig" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -289,11 +293,11 @@ export class DeviceController {
     try {
       const { deviceId } = req.params;
       const wsServer = req.app.locals.wsServer;
-      
+
       if (!wsServer) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WebSocket server not available' 
+        return res.status(500).json({
+          success: false,
+          error: "WebSocket server not available",
         });
       }
 
@@ -302,19 +306,19 @@ export class DeviceController {
         : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
 
       if (!device) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Device not found' 
+        return res.status(404).json({
+          success: false,
+          error: "Device not found",
         });
       }
 
       const components = DeviceService.extractComponents(device.config);
       return res.json({ success: true, data: components });
     } catch (error) {
-      apiLogger.error(error, { operation: 'getComponents' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "getComponents" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
@@ -328,12 +332,12 @@ export class DeviceController {
       const { deviceId } = req.params;
 
       DeviceService.deleteDevice(deviceId);
-      return res.json({ success: true, message: 'Device deleted' });
+      return res.json({ success: true, message: "Device deleted" });
     } catch (error) {
-      apiLogger.error(error, { operation: 'deleteDevice' });
-      return res.status(500).json({ 
-        success: false, 
-        error: error.message 
+      apiLogger.error(error, { operation: "deleteDevice" });
+      return res.status(500).json({
+        success: false,
+        error: error.message,
       });
     }
   }
