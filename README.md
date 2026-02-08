@@ -58,11 +58,13 @@ npm run dev
 ### 📖 Просмотр API документации
 
 **Онлайн (без установки):**
+
 ```bash
 # Откройте https://editor.swagger.io и загрузите swagger.json
 ```
 
 **В проекте:**
+
 ```bash
 npm install swagger-ui-express
 
@@ -98,6 +100,7 @@ POST /api/devices/:deviceId/:type/:key  # Установить данные
 ### Примеры использования
 
 **Ирригатор:**
+
 ```bash
 # Получить
 curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1
@@ -112,18 +115,21 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1 \
 ```
 
 **Выход:**
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/outputs/out1 \
   -d '{"description": "Main pump", "maxPower": 500}'
 ```
 
 **PCF выход:**
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/pcfOutputs/pcfout1 \
   -d '{"description": "LED strip", "zone": "area-1"}'
 ```
 
 **Датчик:**
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/sensors/temp1 \
   -d '{"description": "Temperature", "unit": "celsius"}'
@@ -132,6 +138,7 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/sensors/temp1 \
 ### Обратная совместимость
 
 Старый API для ирригаторов продолжает работать:
+
 ```bash
 # Legacy endpoints (работают)
 POST /api/devices/:id/irrigators/:key/irrigation-table
@@ -175,12 +182,14 @@ chmod +x test-api.sh
 SQLite с двумя основными таблицами:
 
 **devices** - состояние устройств
+
 - id, address, status
 - config (JSON) - конфигурация
 - state (JSON) - текущее состояние
 - last_seen, created_at, updated_at
 
 **component_metadata** - метаданные компонентов
+
 - device_id, component_type, component_key
 - metadata (JSON) - произвольные данные
   - irrigationTable - таблица поливов

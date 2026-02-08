@@ -1,9 +1,9 @@
-import { ComponentMetadataModel } from '../models/ComponentMetadata.js';
+import { ComponentMetadataModel } from "../models/ComponentMetadata.js";
 
 export class MetadataService {
   /**
    * Сохранить или обновить метаданные компонента
-   * @param {string} deviceId 
+   * @param {string} deviceId
    * @param {string} componentType - 'irrigator', 'timer', 'output' и т.д.
    * @param {string} componentKey - 'irr1', 'light1' и т.д.
    * @param {Object} metadata - произвольные метаданные
@@ -19,17 +19,21 @@ export class MetadataService {
 
   /**
    * Получить метаданные компонента
-   * @param {string} deviceId 
-   * @param {string} componentType 
-   * @param {string} componentKey 
+   * @param {string} deviceId
+   * @param {string} componentType
+   * @param {string} componentKey
    */
   static getMetadata(deviceId, componentType, componentKey) {
-    return ComponentMetadataModel.findByComponent(deviceId, componentType, componentKey);
+    return ComponentMetadataModel.findByComponent(
+      deviceId,
+      componentType,
+      componentKey,
+    );
   }
 
   /**
    * Получить все метаданные устройства
-   * @param {string} deviceId 
+   * @param {string} deviceId
    * @param {string} componentType - опционально
    */
   static getDeviceMetadata(deviceId, componentType = null) {
@@ -38,7 +42,7 @@ export class MetadataService {
 
   /**
    * Удалить метаданные
-   * @param {number} id 
+   * @param {number} id
    */
   static deleteMetadata(id) {
     ComponentMetadataModel.delete(id);
@@ -46,7 +50,7 @@ export class MetadataService {
 
   /**
    * Удалить все метаданные устройства
-   * @param {string} deviceId 
+   * @param {string} deviceId
    */
   static deleteDeviceMetadata(deviceId) {
     ComponentMetadataModel.deleteByDevice(deviceId);
@@ -55,7 +59,7 @@ export class MetadataService {
   /**
    * Сохранить метаданные для ирригатора
    * Специализированный метод для работы с таблицами поливов
-   * @param {string} deviceId 
+   * @param {string} deviceId
    * @param {string} irrigatorKey - 'irr1', 'irr2' и т.д.
    * @param {Object} metadata
    * @example
@@ -67,7 +71,7 @@ export class MetadataService {
    * })
    */
   static saveIrrigatorMetadata(deviceId, irrigatorKey, metadata) {
-    return this.saveMetadata(deviceId, 'irrigator', irrigatorKey, {
+    return this.saveMetadata(deviceId, "irrigator", irrigatorKey, {
       ...metadata,
       updatedAt: Date.now(),
     });
@@ -75,24 +79,24 @@ export class MetadataService {
 
   /**
    * Получить метаданные ирригатора
-   * @param {string} deviceId 
-   * @param {string} irrigatorKey 
+   * @param {string} deviceId
+   * @param {string} irrigatorKey
    */
   static getIrrigatorMetadata(deviceId, irrigatorKey) {
-    return this.getMetadata(deviceId, 'irrigator', irrigatorKey);
+    return this.getMetadata(deviceId, "irrigator", irrigatorKey);
   }
 
   /**
    * Получить все метаданные ирригаторов устройства
-   * @param {string} deviceId 
+   * @param {string} deviceId
    */
   static getAllIrrigatorsMetadata(deviceId) {
-    return this.getDeviceMetadata(deviceId, 'irrigator');
+    return this.getDeviceMetadata(deviceId, "irrigator");
   }
 
   /**
    * Пакетное сохранение метаданных
-   * @param {string} deviceId 
+   * @param {string} deviceId
    * @param {Array} metadataList - [{ componentType, componentKey, metadata }, ...]
    */
   static saveBulkMetadata(deviceId, metadataList) {
@@ -102,7 +106,7 @@ export class MetadataService {
         deviceId,
         item.componentType,
         item.componentKey,
-        item.metadata
+        item.metadata,
       );
       results.push(result);
     }
@@ -112,13 +116,19 @@ export class MetadataService {
   /**
    * Установить таблицу поливов для ирригатора
    * Сохраняет в метаданные и ВСЕГДА отправляет на устройство через RPC
-   * @param {string} deviceId 
-   * @param {string} irrigatorKey 
+   * @param {string} deviceId
+   * @param {string} irrigatorKey
    * @param {Array} irrigationTable - [{start: number, stop: number}, ...]
    * @param {Object} strategyParams - параметры стратегии полива
    * @param {Object} wsServer - WebSocket сервер для RPC вызовов
    */
-  static async setIrrigationTable(deviceId, irrigatorKey, irrigationTable, strategyParams = {}, wsServer) {
+  static async setIrrigationTable(
+    deviceId,
+    irrigatorKey,
+    irrigationTable,
+    strategyParams = {},
+    wsServer,
+  ) {
     // Получить текущие метаданные
     const currentMetadata = this.getIrrigatorMetadata(deviceId, irrigatorKey);
     const metadata = currentMetadata?.metadata || {};
@@ -133,35 +143,43 @@ export class MetadataService {
 
     // ВСЕГДА отправить на устройство для синхронизации
     if (!wsServer) {
-      throw new Error('WebSocket server not available');
+      throw new Error("WebSocket server not available");
     }
 
     {
       const device = wsServer.findDeviceById(deviceId);
-      
+
       if (!device) {
         throw new Error(`Device ${deviceId} not connected`);
       }
 
       // Получить имя ирригатора из конфигурации
-      const deviceFromDB = await import('./DeviceService.js').then(m => m.DeviceService.getDevice(deviceId));
+      const deviceFromDB = await import("./DeviceService.js").then((m) =>
+        m.DeviceService.getDevice(deviceId),
+      );
       const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
       const irrigatorName = irrigatorConfig?.name || irrigatorKey;
 
       // Отправить RPC команду Set.IrrigationTable
       const rpcParams = {
-        irrigator_name: irrigatorName,
-        reg_map: JSON.stringify(irrigationTable)
+        irrigator: irrigatorName,
+        reg_map: JSON.stringify(irrigationTable),
       };
 
       try {
-        const result = await device.call('Set.IrrigationTable', rpcParams, 5000);
+        const result = await device.call(
+          "Set.IrrigationTable",
+          rpcParams,
+          5000,
+        );
         saved.rpcResult = result;
         saved.syncedToDevice = true;
       } catch (err) {
         saved.rpcError = err.message;
         saved.syncedToDevice = false;
-        throw new Error(`Failed to sync irrigation table to device: ${err.message}`);
+        throw new Error(
+          `Failed to sync irrigation table to device: ${err.message}`,
+        );
       }
     }
 
@@ -170,12 +188,12 @@ export class MetadataService {
 
   /**
    * Получить таблицу поливов из метаданных сервера
-   * @param {string} deviceId 
-   * @param {string} irrigatorKey 
+   * @param {string} deviceId
+   * @param {string} irrigatorKey
    */
   static getIrrigationTable(deviceId, irrigatorKey) {
     const metadata = this.getIrrigatorMetadata(deviceId, irrigatorKey);
-    
+
     if (!metadata?.metadata?.irrigationTable) {
       return null;
     }
@@ -185,43 +203,45 @@ export class MetadataService {
       irrigationTable: metadata.metadata.irrigationTable,
       strategyParams: metadata.metadata.strategyParams || {},
       lastUpdate: metadata.metadata.lastIrrigationTableUpdate,
-      metadata: metadata.metadata
+      metadata: metadata.metadata,
     };
   }
 
   /**
    * Получить таблицу поливов с устройства через RPC
-   * @param {string} deviceId 
-   * @param {string} irrigatorKey 
-   * @param {Object} wsServer 
+   * @param {string} deviceId
+   * @param {string} irrigatorKey
+   * @param {Object} wsServer
    */
   static async getIrrigationTableFromDevice(deviceId, irrigatorKey, wsServer) {
     if (!wsServer) {
-      throw new Error('WebSocket server not available');
+      throw new Error("WebSocket server not available");
     }
 
     const device = wsServer.findDeviceById(deviceId);
-    
+
     if (!device) {
       throw new Error(`Device ${deviceId} not connected`);
     }
 
     // Получить имя ирригатора из конфигурации
-    const deviceFromDB = await import('./DeviceService.js').then(m => m.DeviceService.getDevice(deviceId));
+    const deviceFromDB = await import("./DeviceService.js").then((m) =>
+      m.DeviceService.getDevice(deviceId),
+    );
     const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
     const irrigatorName = irrigatorConfig?.name || irrigatorKey;
 
     // Отправить RPC команду Get.IrrigationTable
     const rpcParams = {
-      irrigator_name: irrigatorName
+      irrigator: irrigatorName,
     };
 
     try {
-      const result = await device.call('Get.IrrigationTable', rpcParams, 5000);
-      
+      const result = await device.call("Get.IrrigationTable", rpcParams, 5000);
+
       // Парсим reg_map если это строка
       let irrigationTable = result.reg_map;
-      if (typeof irrigationTable === 'string') {
+      if (typeof irrigationTable === "string") {
         irrigationTable = JSON.parse(irrigationTable);
       }
 
@@ -229,25 +249,27 @@ export class MetadataService {
         irrigatorKey,
         irrigatorName,
         irrigationTable,
-        deviceResponse: result
+        deviceResponse: result,
       };
     } catch (err) {
-      throw new Error(`Failed to get irrigation table from device: ${err.message}`);
+      throw new Error(
+        `Failed to get irrigation table from device: ${err.message}`,
+      );
     }
   }
 
   /**
    * Синхронизировать таблицу поливов с устройством
    * Берет таблицу из метаданных и отправляет на устройство
-   * @param {string} deviceId 
-   * @param {string} irrigatorKey 
-   * @param {Object} wsServer 
+   * @param {string} deviceId
+   * @param {string} irrigatorKey
+   * @param {Object} wsServer
    */
   static async syncIrrigationTable(deviceId, irrigatorKey, wsServer) {
     const tableData = this.getIrrigationTable(deviceId, irrigatorKey);
-    
+
     if (!tableData) {
-      throw new Error('No irrigation table found in metadata');
+      throw new Error("No irrigation table found in metadata");
     }
 
     return this.setIrrigationTable(
@@ -255,7 +277,7 @@ export class MetadataService {
       irrigatorKey,
       tableData.irrigationTable,
       tableData.strategyParams || {},
-      wsServer
+      wsServer,
     );
   }
 }
