@@ -28,7 +28,16 @@ app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 app.use(apiLogger.request);
 
 // Swagger API documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+const modifiedSwaggerDoc = {
+  ...swaggerDocument,
+  servers: [
+    {
+      url: `${process.env.API_BASE_URL || "http://localhost:" + process.env.API_PORT}${process.env.API_BASE_PATH || "/api/devices"}`,
+    },
+  ],
+};
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(modifiedSwaggerDoc));
 // logger.info(
 //   "Swagger API docs available at http://localhost:" + API_PORT + "/api-docs",
 // );
