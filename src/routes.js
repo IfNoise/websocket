@@ -23,6 +23,12 @@ const validate = (req, res, next) => {
 // ==================== Device Routes ====================
 // API для управления конфигурациями и получения статусов
 
+// Получить список всех устройств
+router.get(
+  '/devices',
+  DeviceController.getAllDevices
+);
+
 // Получить конфигурацию устройства
 router.get(
   '/devices/:deviceId/config',

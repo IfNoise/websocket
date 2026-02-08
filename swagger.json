@@ -33,6 +33,59 @@
     }
   ],
   "paths": {
+    "/devices": {
+      "get": {
+        "tags": ["Device"],
+        "summary": "Получить список всех подключенных устройств",
+        "description": "Возвращает список всех устройств, подключенных к WebSocket серверу",
+        "operationId": "getAllDevices",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "esp32_A8A154"
+                          },
+                          "address": {
+                            "type": "string",
+                            "example": "192.168.1.100"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "connected"
+                          },
+                          "config": {
+                            "type": "object",
+                            "description": "Конфигурация устройства"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
     "/devices/{deviceId}/config": {
       "get": {
         "tags": ["Device"],

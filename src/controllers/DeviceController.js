@@ -3,16 +3,31 @@ import { apiLogger } from '../utils/logger.js';
 
 export class DeviceController {
   /**
-   * Получить все устройства из БД
-   * GET /api/db/devices
+   * Получить список всех подключенных устройств
+   * GET /api/devices
    */
   static getAllDevices(req, res) {
     try {
-      const { status } = req.query;
-      const filters = status ? { status } : {};
+      const wsServer = req.app.locals.wsServer;
+      
+      if (!wsServer) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WebSocket server not available' 
+        });
+      }
 
-      const devices = DeviceService.getAllDevices(filters);
-      return res.json({ success: true, data: devices });
+      const devices = wsServer.jsonrpc.getDevices() || [];
+      
+      return res.json({
+        success: true,
+        data: devices.map((device) => ({
+          id: device.deviceId,
+          address: device.address,
+          status: device.status,
+          config: device.config,
+        }))
+      });
     } catch (error) {
       apiLogger.error(error, { operation: 'getAllDevices' });
       return res.status(500).json({ 
