@@ -49,7 +49,7 @@ export class DeviceService {
    */
   static updateDeviceStatus(id, status) {
     DeviceModel.updateStatus(id, status);
-    
+
     // Отправить обновление через broadcaster
     if (broadcaster) {
       broadcaster.broadcastDeviceStatus(id, status);
@@ -63,12 +63,12 @@ export class DeviceService {
    */
   static updateDeviceConfig(id, config) {
     DeviceModel.updateConfig(id, config);
-    
+
     // Отправить обновление через broadcaster
     if (broadcaster) {
       broadcaster.broadcastDeviceConfig(id, config);
     }
-    
+
     return this.getDevice(id);
   }
 
@@ -79,12 +79,12 @@ export class DeviceService {
    */
   static updateDeviceState(id, state) {
     DeviceModel.updateState(id, state);
-    
+
     // Отправить обновление через broadcaster
     if (broadcaster) {
       broadcaster.broadcastDeviceState(id, state);
     }
-    
+
     return this.getDevice(id);
   }
 

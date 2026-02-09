@@ -33,7 +33,9 @@ websocket/
 ## База данных
 
 ### Таблица `devices`
+
 Хранит информацию об устройствах:
+
 - `id` - ID устройства (например, "esp32_A8A154")
 - `address` - IP адрес
 - `status` - Статус (connected/disconnected)
@@ -43,7 +45,9 @@ websocket/
 - `created_at`, `updated_at` - Временные метки
 
 ### Таблица `component_metadata`
+
 Хранит метаданные для компонентов устройств:
+
 - `id` - Автоинкремент ID
 - `device_id` - Ссылка на устройство
 - `component_type` - Тип компонента ('irrigator', 'timer', 'output')
@@ -56,7 +60,9 @@ websocket/
 ### Устройства в БД
 
 #### `GET /api/db/devices`
+
 Получить все устройства из БД
+
 ```bash
 curl http://localhost:3600/api/db/devices
 # Фильтр по статусу:
@@ -64,13 +70,17 @@ curl http://localhost:3600/api/db/devices?status=connected
 ```
 
 #### `GET /api/db/devices/:deviceId`
+
 Получить конкретное устройство
+
 ```bash
 curl http://localhost:3600/api/db/devices/esp32_A8A154
 ```
 
 #### `PUT /api/db/devices/:deviceId/config`
+
 Обновить конфигурацию устройства в БД
+
 ```bash
 curl -X PUT http://localhost:3600/api/db/devices/esp32_A8A154/config \
   -H "Content-Type: application/json" \
@@ -78,7 +88,9 @@ curl -X PUT http://localhost:3600/api/db/devices/esp32_A8A154/config \
 ```
 
 #### `PUT /api/db/devices/:deviceId/state`
+
 Обновить состояние устройства
+
 ```bash
 curl -X PUT http://localhost:3600/api/db/devices/esp32_A8A154/state \
   -H "Content-Type: application/json" \
@@ -86,12 +98,15 @@ curl -X PUT http://localhost:3600/api/db/devices/esp32_A8A154/state \
 ```
 
 #### `GET /api/db/devices/:deviceId/components`
+
 Извлечь компоненты из конфигурации устройства
+
 ```bash
 curl http://localhost:3600/api/db/devices/esp32_A8A154/components
 ```
 
 Ответ:
+
 ```json
 {
   "success": true,
@@ -113,7 +128,9 @@ curl http://localhost:3600/api/db/devices/esp32_A8A154/components
 ### Метаданные компонентов
 
 #### `GET /api/devices/:deviceId/metadata`
+
 Получить все метаданные устройства
+
 ```bash
 curl http://localhost:3600/api/devices/esp32_A8A154/metadata
 # Фильтр по типу:
@@ -121,13 +138,17 @@ curl http://localhost:3600/api/devices/esp32_A8A154/metadata?componentType=irrig
 ```
 
 #### `GET /api/devices/:deviceId/metadata/:componentType/:componentKey`
+
 Получить метаданные конкретного компонента
+
 ```bash
 curl http://localhost:3600/api/devices/esp32_A8A154/metadata/irrigator/irr1
 ```
 
 #### `POST /api/devices/:deviceId/metadata`
+
 Сохранить метаданные компонента
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/metadata \
   -H "Content-Type: application/json" \
@@ -147,7 +168,9 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/metadata \
 ```
 
 #### `POST /api/devices/:deviceId/metadata/bulk`
+
 Пакетное сохранение метаданных
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/metadata/bulk \
   -H "Content-Type: application/json" \
@@ -170,19 +193,25 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/metadata/bulk \
 ### Специализированные методы для ирригаторов
 
 #### `GET /api/devices/:deviceId/irrigators/metadata`
+
 Получить метаданные всех ирригаторов
+
 ```bash
 curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/metadata
 ```
 
 #### `GET /api/devices/:deviceId/irrigators/:irrigatorKey/metadata`
+
 Получить метаданные конкретного ирригатора
+
 ```bash
 curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/metadata
 ```
 
 #### `POST /api/devices/:deviceId/irrigators/:irrigatorKey/metadata`
+
 Сохранить метаданные ирригатора (с авто-добавлением timestamp)
+
 ```bash
 curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/metadata \
   -H "Content-Type: application/json" \
@@ -207,7 +236,9 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/meta
 ### Irrigation Table API
 
 #### `POST /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table`
+
 Установить таблицу поливов для ирригатора
+
 - Сохраняет в метаданные на сервере
 - **АВТОМАТИЧЕСКИ** отправляет на устройство через RPC `Set.IrrigationTable`
 - Сохраняет параметры стратегии для истории и редактирования
@@ -243,13 +274,16 @@ curl -X POST http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irri
 Подробнее о параметрах стратегии: [STRATEGY_PARAMS.md](STRATEGY_PARAMS.md)
 
 Формат таблицы:
+
 - `start` - время начала полива (секунды с начала дня, 0-86400)
 - `stop` - время окончания полива (секунды с начала дня, 0-86400)
 
 #### `GET /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table`
+
 Получить таблицу поливов
 
 Query параметры:
+
 - `source=metadata` (default) - получить из метаданных сервера
 - `source=device` - получить напрямую с устройства через RPC `Get.IrrigationTable`
 
@@ -262,7 +296,9 @@ curl http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrigation-t
 ```
 
 #### `PUT /api/devices/:deviceId/irrigators/:irrigatorKey/irrigation-table/sync`
+
 Синхронизировать таблицу поливов с устройством
+
 - Берет таблицу из метаданных сервера
 - Отправляет на устройство через RPC
 
@@ -277,9 +313,9 @@ curl -X PUT http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/irrig
 При вызове POST `/irrigation-table` с `syncToDevice: true`, сервер автоматически вызывает:
 
 ```javascript
-device.call('Set.IrrigationTable', {
-  irrigator_name: 'Irrigator1',  // из config.irr1.name
-  reg_map: '[{"start":43200,"stop":43800}]'
+device.call("Set.IrrigationTable", {
+  irrigator_name: "Irrigator1", // из config.irr1.name
+  reg_map: '[{"start":43200,"stop":43800}]',
 });
 ```
 
@@ -288,12 +324,13 @@ device.call('Set.IrrigationTable', {
 При вызове GET `/irrigation-table?source=device`, сервер вызывает:
 
 ```javascript
-device.call('Get.IrrigationTable', {
-  irrigator_name: 'Irrigator1'
+device.call("Get.IrrigationTable", {
+  irrigator_name: "Irrigator1",
 });
 ```
 
 Устройство возвращает:
+
 ```json
 {
   "reg_map": "[{\"start\":43200,\"stop\":43800}]"
@@ -307,46 +344,46 @@ device.call('Get.IrrigationTable', {
 ```javascript
 // Пример: сохранить таблицу поливов с метаданными
 const response = await fetch(
-  'http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/metadata',
+  "http://localhost:3600/api/devices/esp32_A8A154/irrigators/irr1/metadata",
   {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       metadata: {
         wateringTable: [
           { day: 1, duration: 600, start: 43200 },
           { day: 2, duration: 600, start: 43200 },
-          { day: 3, duration: 900, start: 43200 }
+          { day: 3, duration: 900, start: 43200 },
         ],
         schedule: {
-          type: 'daily',
+          type: "daily",
           timesPerDay: 24,
-          windowSize: 150
+          windowSize: 150,
         },
-        cropType: 'tomatoes',
-        soilType: 'loam',
+        cropType: "tomatoes",
+        soilType: "loam",
         area: 50, // квадратных метров
         flowRate: 2.5, // литров в минуту
-        notes: 'Оптимизированный график для томатов в теплице'
-      }
-    })
-  }
+        notes: "Оптимизированный график для томатов в теплице",
+      },
+    }),
+  },
 );
 
 const result = await response.json();
-console.log('Saved:', result);
+console.log("Saved:", result);
 ```
 
 ### 2. Получение всех метаданных ирригаторов
 
 ```javascript
 const response = await fetch(
-  'http://localhost:3600/api/devices/esp32_A8A154/irrigators/metadata'
+  "http://localhost:3600/api/devices/esp32_A8A154/irrigators/metadata",
 );
 const { data } = await response.json();
 
 // data будет массивом всех метаданных ирригаторов
-data.forEach(item => {
+data.forEach((item) => {
   console.log(`${item.component_key}:`, item.metadata);
 });
 ```
@@ -384,6 +421,7 @@ for (const irrigator of data.irrigators) {
 ## Автоматическое сохранение состояния
 
 Сервер автоматически:
+
 1. Сохраняет устройства при подключении
 2. Обновляет статус при отключении
 3. Периодически обновляет last_seen (каждые 30 секунд)
@@ -392,43 +430,49 @@ for (const irrigator of data.irrigators) {
 ## Миграция существующего кода
 
 Старые эндпоинты остались без изменений для обратной совместимости:
+
 - `GET /api/devices` - список подключенных устройств (из памяти)
 - `GET /api/devices/:deviceId/getState` - получить состояние от устройства
 - `POST /api/devices/:deviceId/call` - вызвать метод на устройстве
 - и т.д.
 
 Новые эндпоинты добавлены с префиксами:
+
 - `/api/db/*` - работа с БД
 - `/api/devices/:deviceId/metadata` - работа с метаданными
 
 ## WebSocket канал для публикации статусов устройств
 
 ### Обзор
+
 Система включает отдельный WebSocket сервер для публикации обновлений статусов устройств в реальном времени. Клиенты могут подключаться к этому серверу и получать уведомления о:
+
 - Изменении статуса устройства (подключено/отключено)
 - Изменении состояния устройства
 - Изменении конфигурации устройства
 - Ошибках устройства
 
 ### Подключение
+
 WebSocket сервер запускается автоматически на порту `WS_PORT + 1` (по умолчанию 8081).
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8081');
+const ws = new WebSocket("ws://localhost:8081");
 
 ws.onopen = () => {
-  console.log('Connected to status broadcaster');
+  console.log("Connected to status broadcaster");
 };
 
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data);
-  console.log('Received:', message);
+  console.log("Received:", message);
 };
 ```
 
 ### Формат сообщений
 
 #### Приветственное сообщение (при подключении)
+
 ```json
 {
   "type": "welcome",
@@ -438,6 +482,7 @@ ws.onmessage = (event) => {
 ```
 
 #### Обновление устройства
+
 ```json
 {
   "type": "device_update",
@@ -456,12 +501,15 @@ ws.onmessage = (event) => {
 ### Команды клиента
 
 #### Ping
+
 ```json
 {
   "type": "ping"
 }
 ```
+
 Ответ:
+
 ```json
 {
   "type": "pong",
@@ -470,13 +518,16 @@ ws.onmessage = (event) => {
 ```
 
 #### Подписка на устройство
+
 ```json
 {
   "type": "subscribe",
   "deviceId": "esp32_A8A154"
 }
 ```
+
 Ответ:
+
 ```json
 {
   "type": "subscribed",
@@ -486,13 +537,16 @@ ws.onmessage = (event) => {
 ```
 
 #### Отписка от устройства
+
 ```json
 {
   "type": "unsubscribe",
   "deviceId": "esp32_A8A154"
 }
 ```
+
 Ответ:
+
 ```json
 {
   "type": "unsubscribed",
@@ -502,12 +556,15 @@ ws.onmessage = (event) => {
 ```
 
 ### Автоматическая публикация
+
 Система автоматически публикует обновления при:
+
 - Вызове `DeviceService.updateDeviceState()`
 - Вызове `DeviceService.updateDeviceStatus()`
 - Вызове `DeviceService.updateDeviceConfig()`
 
 ### Пример клиента
+
 См. `examples/status-client.js` для полного примера подключения и обработки обновлений.
 
 ## Расширяемость
@@ -520,6 +577,7 @@ ws.onmessage = (event) => {
 4. Добавить контроллеры в `MetadataController`
 
 Например, для таймеров света:
+
 ```javascript
 // В MetadataService
 static saveLightTimerMetadata(deviceId, timerKey, metadata) {

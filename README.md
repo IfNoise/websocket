@@ -243,18 +243,19 @@ SQLite с двумя основными таблицами:
 Клиенты могут подписаться на обновления устройств в реальном времени:
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8081');
+const ws = new WebSocket("ws://localhost:8081");
 
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data);
-  
-  if (message.type === 'device_update') {
+
+  if (message.type === "device_update") {
     console.log(`Device ${message.deviceId}: ${message.data.eventType}`);
   }
 };
 ```
 
 **Пример запуска:**
+
 ```bash
 node examples/status-client.js
 ```
