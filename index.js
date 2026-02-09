@@ -37,9 +37,13 @@ const modifiedSwaggerDoc = {
   ],
 };
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(modifiedSwaggerDoc));
+app.use(
+  "/api/devices/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(modifiedSwaggerDoc),
+);
 // logger.info(
-//   "Swagger API docs available at http://localhost:" + API_PORT + "/api-docs",
+//   "Swagger API docs available at http://localhost:" + API_PORT + "/api/devices/docs",
 // );
 
 // Rate limiting
@@ -54,10 +58,13 @@ app.use(limiter);
 
 // Configuration ENV
 const WS_PORT = process.env.WS_PORT || 8080;
+const STATUS_WS_PORT = process.env.STATUS_WS_PORT || 8081;
 const API_PORT = process.env.API_PORT || 3600;
 
 // Использование нового сервера с интеграцией БД
-const jsonrpcServer = new JSONRPCwsServerWithDB(WS_PORT);
+const jsonrpcServer = new JSONRPCwsServerWithDB(WS_PORT, {
+  statusPort: STATUS_WS_PORT,
+});
 const jsonrpc = jsonrpcServer.jsonrpc;
 
 function sendError(res, status, message) {

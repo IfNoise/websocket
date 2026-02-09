@@ -4,6 +4,8 @@
 
 Сервер теперь включает полноценное состояние устройств с использованием SQLite и гибкую систему хранения метаданных.
 
+**Новое:** Добавлен WebSocket канал для публикации статусов устройств в реальном времени. Клиенты могут подключаться к отдельному WebSocket серверу и получать обновления о состоянии, статусе и конфигурации устройств.
+
 ## Структура проекта
 
 ```
@@ -398,6 +400,115 @@ for (const irrigator of data.irrigators) {
 Новые эндпоинты добавлены с префиксами:
 - `/api/db/*` - работа с БД
 - `/api/devices/:deviceId/metadata` - работа с метаданными
+
+## WebSocket канал для публикации статусов устройств
+
+### Обзор
+Система включает отдельный WebSocket сервер для публикации обновлений статусов устройств в реальном времени. Клиенты могут подключаться к этому серверу и получать уведомления о:
+- Изменении статуса устройства (подключено/отключено)
+- Изменении состояния устройства
+- Изменении конфигурации устройства
+- Ошибках устройства
+
+### Подключение
+WebSocket сервер запускается автоматически на порту `WS_PORT + 1` (по умолчанию 8081).
+
+```javascript
+const ws = new WebSocket('ws://localhost:8081');
+
+ws.onopen = () => {
+  console.log('Connected to status broadcaster');
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log('Received:', message);
+};
+```
+
+### Формат сообщений
+
+#### Приветственное сообщение (при подключении)
+```json
+{
+  "type": "welcome",
+  "message": "Connected to device status broadcaster",
+  "timestamp": "2026-02-09T12:00:00.000Z"
+}
+```
+
+#### Обновление устройства
+```json
+{
+  "type": "device_update",
+  "deviceId": "esp32_A8A154",
+  "data": {
+    "eventType": "state_changed|status_changed|config_changed|error",
+    "state": {...},      // для state_changed
+    "status": "...",     // для status_changed
+    "config": {...},     // для config_changed
+    "error": "..."       // для error
+  },
+  "timestamp": "2026-02-09T12:00:00.000Z"
+}
+```
+
+### Команды клиента
+
+#### Ping
+```json
+{
+  "type": "ping"
+}
+```
+Ответ:
+```json
+{
+  "type": "pong",
+  "timestamp": "2026-02-09T12:00:00.000Z"
+}
+```
+
+#### Подписка на устройство
+```json
+{
+  "type": "subscribe",
+  "deviceId": "esp32_A8A154"
+}
+```
+Ответ:
+```json
+{
+  "type": "subscribed",
+  "deviceId": "esp32_A8A154",
+  "timestamp": "2026-02-09T12:00:00.000Z"
+}
+```
+
+#### Отписка от устройства
+```json
+{
+  "type": "unsubscribe",
+  "deviceId": "esp32_A8A154"
+}
+```
+Ответ:
+```json
+{
+  "type": "unsubscribed",
+  "deviceId": "esp32_A8A154",
+  "timestamp": "2026-02-09T12:00:00.000Z"
+}
+```
+
+### Автоматическая публикация
+Система автоматически публикует обновления при:
+- Вызове `DeviceService.updateDeviceState()`
+- Вызове `DeviceService.updateDeviceStatus()`
+- Вызове `DeviceService.updateDeviceConfig()`
+
+### Пример клиента
+См. `examples/status-client.js` для полного примера подключения и обработки обновлений.
 
 ## Расширяемость
 

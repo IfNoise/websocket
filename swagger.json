@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "IoT WebSocket Server API",
-    "description": "REST API для управления IoT устройствами (ESP32) с системой автоматического полива. Поддерживает управление конфигурацией, состоянием и всеми компонентами устройств (irrigators, outputs, sensors, timers, pcfOutputs).",
-    "version": "2.0.0",
+    "description": "REST API для управления IoT устройствами (ESP32) с системой автоматического полива. Поддерживает управление конфигурацией, состоянием и всеми компонентами устройств (irrigators, outputs, sensors, timers, pcfOutputs).\n\n## WebSocket каналы\n\nСервер предоставляет два WebSocket канала:\n\n- **ws://localhost:8080** - JSON-RPC канал для устройств ESP32\n- **ws://localhost:8081** - Канал публикации статусов для клиентов (real-time обновления)\n\nПодробнее о WebSocket канале статусов см. [STATUS_WEBSOCKET.md](https://github.com/IfNoise/websocket/blob/main/docs/STATUS_WEBSOCKET.md)",
+    "version": "2.1.0",
     "contact": {
       "name": "IfNoise",
       "url": "https://github.com/IfNoise/websocket"
@@ -11,6 +11,10 @@
     "license": {
       "name": "ISC"
     }
+  },
+  "externalDocs": {
+    "description": "WebSocket канал для публикации статусов устройств",
+    "url": "https://github.com/IfNoise/websocket/blob/main/docs/STATUS_WEBSOCKET.md"
   },
   "servers": [
     {

@@ -5,6 +5,7 @@
 ## 🚀 Основные возможности
 
 - **WebSocket JSON-RPC** сервер для связи с ESP32 устройствами
+- **WebSocket канал статусов** для публикации обновлений устройств в реальном времени
 - **SQLite база данных** для хранения состояния устройств и метаданных
 - **REST API** для управления устройствами и таблицами поливов
 - **Winston логирование** с опциональной интеграцией Grafana Loki
@@ -24,6 +25,7 @@ npm install
 ```env
 # WebSocket и API
 WS_PORT=8082
+STATUS_WS_PORT=8081
 API_PORT=3600
 
 # Логирование
@@ -52,6 +54,7 @@ npm run dev
 
 - [**swagger.json**](swagger.json) - 📖 OpenAPI 3.0 спецификация API
 - [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) - Архитектура сервера
+- [**docs/STATUS_WEBSOCKET.md**](docs/STATUS_WEBSOCKET.md) - WebSocket канал для публикации статусов
 - [**docs/LOGGING.md**](docs/LOGGING.md) - Система логирования Winston + Loki
 - [**docs/STRATEGY_PARAMS.md**](docs/STRATEGY_PARAMS.md) - Параметры стратегии полива
 
@@ -167,7 +170,8 @@ chmod +x test-api.sh
     │   └── ComponentMetadata.js  # Модель метаданных
     ├── services/
     │   ├── DeviceService.js   # Бизнес-логика устройств
-    │   └── MetadataService.js # Бизнес-логика метаданных
+    │   ├── MetadataService.js # Бизнес-логика метаданных
+    │   └── StatusBroadcaster.js  # WebSocket публикация статусов
     ├── controllers/
     │   ├── DeviceController.js   # HTTP контроллер устройств
     │   └── MetadataController.js # HTTP контроллер метаданных
@@ -176,6 +180,12 @@ chmod +x test-api.sh
     │   └── logger.js          # Winston логгеры
     └── JSONRPCwsServerWithDB.js  # Расширенный WS сервер
 ```
+
+### WebSocket каналы
+
+- **:8080** - JSON-RPC для устройств (ESP32)
+- **:8081** - Публикация статусов для клиентов (новое!)
+- **:3600** - HTTP REST API
 
 ## 🗄️ База данных
 
@@ -227,6 +237,29 @@ SQLite с двумя основными таблицами:
 - `Set.IrrigationTable` - установить таблицу поливов
 - `Get.IrrigationTable` - получить таблицу поливов
 - `Config.Get` - получить конфигурацию
+
+## 📡 WebSocket канал статусов
+
+Клиенты могут подписаться на обновления устройств в реальном времени:
+
+```javascript
+const ws = new WebSocket('ws://localhost:8081');
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  
+  if (message.type === 'device_update') {
+    console.log(`Device ${message.deviceId}: ${message.data.eventType}`);
+  }
+};
+```
+
+**Пример запуска:**
+```bash
+node examples/status-client.js
+```
+
+Подробнее см. [docs/STATUS_WEBSOCKET.md](docs/STATUS_WEBSOCKET.md)
 
 ## 📊 Логирование
 

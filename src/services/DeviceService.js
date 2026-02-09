@@ -1,7 +1,17 @@
 import { DeviceModel } from "../models/Device.js";
 import { ComponentMetadataModel } from "../models/ComponentMetadata.js";
 
+// Singleton broadcaster, будет инициализирован через setBroadcaster()
+let broadcaster = null;
+
 export class DeviceService {
+  /**
+   * Установить экземпляр StatusBroadcaster для автоматической публикации обновлений
+   * @param {Object} statusBroadcaster
+   */
+  static setBroadcaster(statusBroadcaster) {
+    broadcaster = statusBroadcaster;
+  }
   /**
    * Зарегистрировать или обновить устройство
    * @param {Object} deviceData
@@ -39,6 +49,11 @@ export class DeviceService {
    */
   static updateDeviceStatus(id, status) {
     DeviceModel.updateStatus(id, status);
+    
+    // Отправить обновление через broadcaster
+    if (broadcaster) {
+      broadcaster.broadcastDeviceStatus(id, status);
+    }
   }
 
   /**
@@ -48,6 +63,12 @@ export class DeviceService {
    */
   static updateDeviceConfig(id, config) {
     DeviceModel.updateConfig(id, config);
+    
+    // Отправить обновление через broadcaster
+    if (broadcaster) {
+      broadcaster.broadcastDeviceConfig(id, config);
+    }
+    
     return this.getDevice(id);
   }
 
@@ -58,6 +79,12 @@ export class DeviceService {
    */
   static updateDeviceState(id, state) {
     DeviceModel.updateState(id, state);
+    
+    // Отправить обновление через broadcaster
+    if (broadcaster) {
+      broadcaster.broadcastDeviceState(id, state);
+    }
+    
     return this.getDevice(id);
   }
 

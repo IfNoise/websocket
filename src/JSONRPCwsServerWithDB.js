@@ -1,5 +1,6 @@
 import JSONRPCws from '../json-rpc-ws.js';
 import { DeviceService } from './services/DeviceService.js';
+import { StatusBroadcaster } from './services/StatusBroadcaster.js';
 import { getDb } from './database/db.js';
 import logger, { deviceLogger } from './utils/logger.js';
 
@@ -21,6 +22,14 @@ export class JSONRPCwsServerWithDB {
       ...options,
       logger, // Передаем Winston logger
     });
+    
+    // Инициализация StatusBroadcaster на отдельном порту
+    const statusPort = options.statusPort || (port + 1);
+    this.statusBroadcaster = new StatusBroadcaster(statusPort);
+    this.statusBroadcaster.start();
+    
+    // Связать broadcaster с DeviceService
+    DeviceService.setBroadcaster(this.statusBroadcaster);
     
     // Подписка на события
     this._setupEventHandlers();
@@ -210,6 +219,12 @@ export class JSONRPCwsServerWithDB {
     if (this.statusInterval) {
       clearInterval(this.statusInterval);
     }
+    
+    // Закрыть StatusBroadcaster
+    if (this.statusBroadcaster) {
+      this.statusBroadcaster.close();
+    }
+    
     this.jsonrpc.close();
   }
 }
