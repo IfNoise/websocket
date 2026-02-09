@@ -32,16 +32,12 @@ const modifiedSwaggerDoc = {
   ...swaggerDocument,
   servers: [
     {
-      url: `${process.env.API_BASE_URL || "http://localhost:" + process.env.API_PORT}${process.env.API_BASE_PATH || "/api/devices"}`,
+      url: `${process.env.API_BASE_URL || "http://localhost:" + process.env.API_PORT}${process.env.API_BASE_PATH || "/docs"}`,
     },
   ],
 };
 
-app.use(
-  "/api/devices/docs",
-  swaggerUi.serve,
-  swaggerUi.setup(modifiedSwaggerDoc),
-);
+app.use("/devices/docs", swaggerUi.serve, swaggerUi.setup(modifiedSwaggerDoc));
 // logger.info(
 //   "Swagger API docs available at http://localhost:" + API_PORT + "/api/devices/docs",
 // );
