@@ -198,12 +198,23 @@ export class MetadataService {
       return null;
     }
 
+    // Извлекаем дополнительные метаданные, исключая дублируемые поля
+    const {
+      irrigationTable,
+      strategyParams,
+      lastIrrigationTableUpdate,
+      updatedAt,
+      ...additionalMetadata
+    } = metadata.metadata;
+
     return {
       irrigatorKey,
-      irrigationTable: metadata.metadata.irrigationTable,
-      strategyParams: metadata.metadata.strategyParams || {},
-      lastUpdate: metadata.metadata.lastIrrigationTableUpdate,
-      metadata: metadata.metadata,
+      irrigationTable,
+      strategyParams: strategyParams || {},
+      lastUpdate: lastIrrigationTableUpdate,
+      ...(Object.keys(additionalMetadata).length > 0 && {
+        metadata: additionalMetadata,
+      }),
     };
   }
 

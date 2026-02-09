@@ -1,16 +1,16 @@
-import { DeviceModel } from '../models/Device.js';
-import { ComponentMetadataModel } from '../models/ComponentMetadata.js';
+import { DeviceModel } from "../models/Device.js";
+import { ComponentMetadataModel } from "../models/ComponentMetadata.js";
 
 export class DeviceService {
   /**
    * Зарегистрировать или обновить устройство
-   * @param {Object} deviceData 
+   * @param {Object} deviceData
    */
   static registerDevice({ id, address, config, state }) {
     return DeviceModel.upsert({
       id,
       address,
-      status: 'connected',
+      status: "connected",
       config,
       state,
     });
@@ -18,7 +18,7 @@ export class DeviceService {
 
   /**
    * Получить устройство по ID
-   * @param {string} id 
+   * @param {string} id
    */
   static getDevice(id) {
     return DeviceModel.findById(id);
@@ -26,7 +26,7 @@ export class DeviceService {
 
   /**
    * Получить все устройства
-   * @param {Object} filters 
+   * @param {Object} filters
    */
   static getAllDevices(filters = {}) {
     return DeviceModel.findAll(filters);
@@ -34,8 +34,8 @@ export class DeviceService {
 
   /**
    * Обновить статус устройства
-   * @param {string} id 
-   * @param {string} status 
+   * @param {string} id
+   * @param {string} status
    */
   static updateDeviceStatus(id, status) {
     DeviceModel.updateStatus(id, status);
@@ -43,8 +43,8 @@ export class DeviceService {
 
   /**
    * Обновить конфигурацию устройства
-   * @param {string} id 
-   * @param {Object} config 
+   * @param {string} id
+   * @param {Object} config
    */
   static updateDeviceConfig(id, config) {
     DeviceModel.updateConfig(id, config);
@@ -53,8 +53,8 @@ export class DeviceService {
 
   /**
    * Обновить состояние устройства
-   * @param {string} id 
-   * @param {Object} state 
+   * @param {string} id
+   * @param {Object} state
    */
   static updateDeviceState(id, state) {
     DeviceModel.updateState(id, state);
@@ -63,7 +63,7 @@ export class DeviceService {
 
   /**
    * Удалить устройство
-   * @param {string} id 
+   * @param {string} id
    */
   static deleteDevice(id) {
     DeviceModel.delete(id);
@@ -72,7 +72,7 @@ export class DeviceService {
   /**
    * Извлечь компоненты из конфигурации устройства
    * Определяет irrigators, timers, outputs и т.д.
-   * @param {Object} config 
+   * @param {Object} config
    * @returns {Object} - { irrigators: [], timers: [], outputs: [] }
    */
   static extractComponents(config) {
@@ -81,13 +81,14 @@ export class DeviceService {
       timers: [],
       outputs: [],
       pcfOutputs: [],
+      pcfInputs: [],
     };
 
     if (!config) return components;
 
     // Извлечение ирригаторов (irr1, irr2, ...)
-    Object.keys(config).forEach(key => {
-      if (key.startsWith('irr') && key.match(/^irr\d+$/)) {
+    Object.keys(config).forEach((key) => {
+      if (key.startsWith("irr") && key.match(/^irr\d+$/)) {
         components.irrigators.push({
           key,
           ...config[key],
@@ -96,8 +97,8 @@ export class DeviceService {
     });
 
     // Извлечение таймеров света (light1, light2, ...)
-    Object.keys(config).forEach(key => {
-      if (key.startsWith('light') && key.match(/^light\d+$/)) {
+    Object.keys(config).forEach((key) => {
+      if (key.startsWith("light") && key.match(/^light\d+$/)) {
         components.timers.push({
           key,
           ...config[key],
@@ -106,9 +107,18 @@ export class DeviceService {
     });
 
     // Извлечение PCF выходов (pcfout1, pcfout2, ...)
-    Object.keys(config).forEach(key => {
-      if (key.startsWith('pcfout') && key.match(/^pcfout\d+$/)) {
+    Object.keys(config).forEach((key) => {
+      if (key.startsWith("pcfout") && key.match(/^pcfout\d+$/)) {
         components.pcfOutputs.push({
+          key,
+          ...config[key],
+        });
+      }
+    });
+    // Извлечение PCF входов (pcfin1, pcfin2, ...)
+    Object.keys(config).forEach((key) => {
+      if (key.startsWith("pcfin") && key.match(/^pcfin\d+$/)) {
+        components.pcfInputs.push({
           key,
           ...config[key],
         });
