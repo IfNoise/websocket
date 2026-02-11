@@ -127,12 +127,29 @@ export class DeviceModel {
     // Получить текущее состояние для сравнения
     const currentDevice = this.findById(id);
     
-    // Нормализация для сравнения - сортировка ключей и исключение timestamp
+    // Нормализация для сравнения - рекурсивная сортировка всех ключей и исключение timestamp
     const normalizeState = (obj) => {
       if (!obj) return null;
-      // Создаем копию без timestamp для корректного сравнения
+      
+      // Удаляем timestamp на верхнем уровне
       const { timestamp, ...cleanObj } = obj;
-      return JSON.stringify(cleanObj, Object.keys(cleanObj).sort());
+      
+      // Рекурсивная функция для глубокой сортировки ключей
+      const sortKeysRecursive = (item) => {
+        if (Array.isArray(item)) {
+          return item.map(sortKeysRecursive);
+        } else if (item !== null && typeof item === 'object') {
+          return Object.keys(item)
+            .sort()
+            .reduce((result, key) => {
+              result[key] = sortKeysRecursive(item[key]);
+              return result;
+            }, {});
+        }
+        return item;
+      };
+      
+      return JSON.stringify(sortKeysRecursive(cleanObj));
     };
     
     const newStateStr = normalizeState(state);
