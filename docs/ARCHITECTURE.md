@@ -8,7 +8,7 @@
 
 ## Структура проекта
 
-```
+```planetext
 websocket/
 ├── src/
 │   ├── database/
@@ -559,9 +559,11 @@ ws.onmessage = (event) => {
 
 Система автоматически публикует обновления при:
 
-- Вызове `DeviceService.updateDeviceState()`
-- Вызове `DeviceService.updateDeviceStatus()`
-- Вызове `DeviceService.updateDeviceConfig()`
+- Вызове `DeviceService.updateDeviceState()` (только если состояние изменилось)
+- Вызове `DeviceService.updateDeviceStatus()` (только если статус изменился)
+- Вызове `DeviceService.updateDeviceConfig()` (только если конфигурация изменилась)
+
+**Оптимизация:** Система автоматически сравнивает новые данные со старыми и отправляет broadcast только при реальных изменениях, что значительно снижает сетевую нагрузку при частом polling.
 
 ### Пример клиента
 

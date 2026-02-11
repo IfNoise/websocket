@@ -71,37 +71,75 @@ export class DeviceModel {
    * Обновить статус устройства
    * @param {string} id 
    * @param {string} status 
+   * @returns {boolean} - true если статус изменился
    */
   static updateStatus(id, status) {
     const db = getDb();
     const now = Math.floor(Date.now() / 1000);
+    
+    // Проверить текущий статус
+    const currentDevice = this.findById(id);
+    if (currentDevice?.status === status) {
+      // Статус не изменился, только обновляем last_seen
+      const updateTime = db.prepare('UPDATE devices SET last_seen = ? WHERE id = ?');
+      updateTime.run(now, id);
+      return false;
+    }
+    
     const stmt = db.prepare('UPDATE devices SET status = ?, last_seen = ? WHERE id = ?');
     stmt.run(status, now, id);
+    return true;
   }
 
   /**
    * Обновить конфигурацию устройства
    * @param {string} id 
    * @param {Object} config 
+   * @returns {boolean} - true если конфигурация изменилась
    */
   static updateConfig(id, config) {
     const db = getDb();
-    const configStr = JSON.stringify(config);
+    
+    // Проверить текущую конфигурацию
+    const currentDevice = this.findById(id);
+    const newConfigStr = JSON.stringify(config);
+    const oldConfigStr = currentDevice?.config ? JSON.stringify(currentDevice.config) : null;
+    
+    if (oldConfigStr === newConfigStr) {
+      return false; // Конфигурация не изменилась
+    }
+    
     const stmt = db.prepare('UPDATE devices SET config = ? WHERE id = ?');
-    stmt.run(configStr, id);
+    stmt.run(newConfigStr, id);
+    return true;
   }
 
   /**
    * Обновить состояние устройства
    * @param {string} id 
    * @param {Object} state 
+   * @returns {boolean} - true если состояние изменилось, false если осталось прежним
    */
   static updateState(id, state) {
     const db = getDb();
     const now = Math.floor(Date.now() / 1000);
-    const stateStr = JSON.stringify(state);
+    
+    // Получить текущее состояние для сравнения
+    const currentDevice = this.findById(id);
+    const newStateStr = JSON.stringify(state);
+    const oldStateStr = currentDevice?.state ? JSON.stringify(currentDevice.state) : null;
+    
+    // Если состояние не изменилось, только обновляем last_seen
+    if (oldStateStr === newStateStr) {
+      const updateTime = db.prepare('UPDATE devices SET last_seen = ? WHERE id = ?');
+      updateTime.run(now, id);
+      return false; // Состояние не изменилось
+    }
+    
+    // Состояние изменилось - обновляем и state, и last_seen
     const stmt = db.prepare('UPDATE devices SET state = ?, last_seen = ? WHERE id = ?');
-    stmt.run(stateStr, now, id);
+    stmt.run(newStateStr, now, id);
+    return true; // Состояние изменилось
   }
 
   /**

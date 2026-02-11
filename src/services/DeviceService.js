@@ -48,10 +48,10 @@ export class DeviceService {
    * @param {string} status
    */
   static updateDeviceStatus(id, status) {
-    DeviceModel.updateStatus(id, status);
+    const hasChanged = DeviceModel.updateStatus(id, status);
 
-    // Отправить обновление через broadcaster
-    if (broadcaster) {
+    // Отправить обновление через broadcaster ТОЛЬКО если статус изменился
+    if (hasChanged && broadcaster) {
       broadcaster.broadcastDeviceStatus(id, status);
     }
   }
@@ -60,12 +60,13 @@ export class DeviceService {
    * Обновить конфигурацию устройства
    * @param {string} id
    * @param {Object} config
+   * @returns {Object} - обновленное устройство
    */
   static updateDeviceConfig(id, config) {
-    DeviceModel.updateConfig(id, config);
+    const hasChanged = DeviceModel.updateConfig(id, config);
 
-    // Отправить обновление через broadcaster
-    if (broadcaster) {
+    // Отправить обновление через broadcaster ТОЛЬКО если конфигурация изменилась
+    if (hasChanged && broadcaster) {
       broadcaster.broadcastDeviceConfig(id, config);
     }
 
@@ -76,12 +77,14 @@ export class DeviceService {
    * Обновить состояние устройства
    * @param {string} id
    * @param {Object} state
+   * @returns {Object} - обновленное устройство
    */
   static updateDeviceState(id, state) {
-    DeviceModel.updateState(id, state);
+    // updateState возвращает true только если состояние действительно изменилось
+    const hasChanged = DeviceModel.updateState(id, state);
 
-    // Отправить обновление через broadcaster
-    if (broadcaster) {
+    // Отправить обновление через broadcaster ТОЛЬКО если состояние изменилось
+    if (hasChanged && broadcaster) {
       broadcaster.broadcastDeviceState(id, state);
     }
 
