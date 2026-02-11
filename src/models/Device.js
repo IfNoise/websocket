@@ -126,8 +126,22 @@ export class DeviceModel {
     
     // Получить текущее состояние для сравнения
     const currentDevice = this.findById(id);
-    const newStateStr = JSON.stringify(state);
-    const oldStateStr = currentDevice?.state ? JSON.stringify(currentDevice.state) : null;
+    
+    // Нормализация для сравнения - сортировка ключей
+    const normalizeState = (obj) => {
+      if (!obj) return null;
+      return JSON.stringify(obj, Object.keys(obj).sort());
+    };
+    
+    const newStateStr = normalizeState(state);
+    const oldStateStr = currentDevice?.state ? normalizeState(currentDevice.state) : null;
+    
+    // Debug логирование (можно включить через LOG_LEVEL=debug)
+    if (process.env.LOG_LEVEL === 'debug' && oldStateStr !== newStateStr) {
+      console.log(`[Device.updateState] ${id}: State changed`);
+      console.log('Old:', oldStateStr ? oldStateStr.substring(0, 100) + '...' : 'null');
+      console.log('New:', newStateStr ? newStateStr.substring(0, 100) + '...' : 'null');
+    }
     
     // Если состояние не изменилось, только обновляем last_seen
     if (oldStateStr === newStateStr) {
@@ -138,7 +152,7 @@ export class DeviceModel {
     
     // Состояние изменилось - обновляем и state, и last_seen
     const stmt = db.prepare('UPDATE devices SET state = ?, last_seen = ? WHERE id = ?');
-    stmt.run(newStateStr, now, id);
+    stmt.run(JSON.stringify(state), now, id);
     return true; // Состояние изменилось
   }
 

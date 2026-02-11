@@ -102,12 +102,13 @@ export class DeviceController {
         });
       }
 
-      const result = await device.call("Get.State", {});
+      const frame = await device.call("Get.State", {});
 
       // Обновить состояние в БД и транслировать через WebSocket
-      DeviceService.updateDeviceState(deviceId, result);
+      // frame = { id, result, error } - извлекаем только result
+      DeviceService.updateDeviceState(deviceId, frame.result);
 
-      return res.json({ success: true, data: result });
+      return res.json({ success: true, data: frame.result });
     } catch (error) {
       apiLogger.error(error, { operation: "getState" });
       return res.status(500).json({
@@ -205,8 +206,9 @@ export class DeviceController {
       ) {
         try {
           // Получить актуальное состояние после изменения
-          const state = await device.call("Get.State", {});
-          DeviceService.updateDeviceState(deviceId, state);
+          const frame = await device.call("Get.State", {});
+          // frame = { id, result, error } - извлекаем только result
+          DeviceService.updateDeviceState(deviceId, frame.result);
         } catch (err) {
           // Ошибка получения состояния не критична
           apiLogger.debug("Failed to update state after command", {

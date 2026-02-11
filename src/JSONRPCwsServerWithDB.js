@@ -109,8 +109,9 @@ export class JSONRPCwsServerWithDB {
       const startTime = Date.now();
       device
         .call("Get.State", {})
-        .then((result) => {
-          DeviceService.updateDeviceState(device.deviceId, result);
+        .then((frame) => {
+          // frame = { id, result, error } - извлекаем только result
+          DeviceService.updateDeviceState(device.deviceId, frame.result);
           deviceLogger.rpcResponse(
             device.deviceId,
             "Get.State",
@@ -261,9 +262,9 @@ export class JSONRPCwsServerWithDB {
         // Опросить состояние устройства
         device
           .call("Get.State", {})
-          .then((result) => {
-            // Обновить состояние в БД и транслировать через WebSocket
-            DeviceService.updateDeviceState(device.deviceId, result);
+          .then((frame) => {
+            // frame = { id, result, error } - извлекаем только result
+            DeviceService.updateDeviceState(device.deviceId, frame.result);
           })
           .catch((err) => {
             // Ошибки опроса не критичны, только логируем на debug уровне

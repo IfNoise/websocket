@@ -173,6 +173,12 @@ export class StatusBroadcaster extends EventEmitter {
    * @param {Object} state
    */
   broadcastDeviceState(deviceId, state) {
+    // Debug логирование
+    if (process.env.LOG_LEVEL === 'debug') {
+      const subscribedCount = this.subscriptions.get(deviceId)?.size || 0;
+      console.log(`[StatusBroadcaster.broadcastDeviceState] ${deviceId}: subscribers=${subscribedCount}, state=${JSON.stringify(state).substring(0, 100)}...`);
+    }
+
     this.broadcastDeviceUpdate(deviceId, {
       eventType: "state_changed",
       state,

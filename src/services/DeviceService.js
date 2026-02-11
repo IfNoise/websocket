@@ -83,6 +83,11 @@ export class DeviceService {
     // updateState возвращает true только если состояние действительно изменилось
     const hasChanged = DeviceModel.updateState(id, state);
 
+    // Debug логирование
+    if (process.env.LOG_LEVEL === 'debug') {
+      console.log(`[DeviceService.updateDeviceState] ${id}: hasChanged=${hasChanged}, willBroadcast=${hasChanged && !!broadcaster}`);
+    }
+
     // Отправить обновление через broadcaster ТОЛЬКО если состояние изменилось
     if (hasChanged && broadcaster) {
       broadcaster.broadcastDeviceState(id, state);
