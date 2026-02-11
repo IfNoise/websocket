@@ -102,14 +102,22 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Обработка неотловленных исключений
-logger.exceptions.handle(
-  new winston.transports.File({ filename: 'logs/exceptions.log' })
-);
+// Увеличить лимит EventEmitter для предотвращения MaxListeners warning
+logger.setMaxListeners(20);
+transports.forEach(transport => {
+  if (transport.setMaxListeners) {
+    transport.setMaxListeners(20);
+  }
+});
 
-logger.rejections.handle(
-  new winston.transports.File({ filename: 'logs/rejections.log' })
-);
+// Обработка неотловленных исключений
+const exceptionsTransport = new winston.transports.File({ filename: 'logs/exceptions.log' });
+exceptionsTransport.setMaxListeners?.(20);
+logger.exceptions.handle(exceptionsTransport);
+
+const rejectionsTransport = new winston.transports.File({ filename: 'logs/rejections.log' });
+rejectionsTransport.setMaxListeners?.(20);
+logger.rejections.handle(rejectionsTransport);
 
 // Вспомогательные методы для структурированного логирования
 export const deviceLogger = {
@@ -126,6 +134,22 @@ export const deviceLogger = {
       event: 'device.disconnect',
       deviceId,
       address,
+    });
+  },
+  
+  info: (deviceId, message, context = {}) => {
+    logger.info(message, {
+      event: 'device.info',
+      deviceId,
+      ...context,
+    });
+  },
+  
+  debug: (deviceId, message, context = {}) => {
+    logger.debug(message, {
+      event: 'device.debug',
+      deviceId,
+      ...context,
     });
   },
   
