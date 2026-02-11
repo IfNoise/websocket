@@ -175,7 +175,9 @@ export class StatusBroadcaster extends EventEmitter {
   broadcastDeviceState(deviceId, state) {
     // Debug логирование
     if (process.env.LOG_LEVEL === 'debug') {
-      const subscribedCount = this.subscriptions.get(deviceId)?.size || 0;
+      const subscribedCount = Array.from(this.clients).filter(ws => 
+        !ws.subscribedDevices || ws.subscribedDevices.has(deviceId)
+      ).length;
       console.log(`[StatusBroadcaster.broadcastDeviceState] ${deviceId}: subscribers=${subscribedCount}, state=${JSON.stringify(state).substring(0, 100)}...`);
     }
 

@@ -127,10 +127,12 @@ export class DeviceModel {
     // Получить текущее состояние для сравнения
     const currentDevice = this.findById(id);
     
-    // Нормализация для сравнения - сортировка ключей
+    // Нормализация для сравнения - сортировка ключей и исключение timestamp
     const normalizeState = (obj) => {
       if (!obj) return null;
-      return JSON.stringify(obj, Object.keys(obj).sort());
+      // Создаем копию без timestamp для корректного сравнения
+      const { timestamp, ...cleanObj } = obj;
+      return JSON.stringify(cleanObj, Object.keys(cleanObj).sort());
     };
     
     const newStateStr = normalizeState(state);
