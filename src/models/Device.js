@@ -155,13 +155,6 @@ export class DeviceModel {
     const newStateStr = normalizeState(state);
     const oldStateStr = currentDevice?.state ? normalizeState(currentDevice.state) : null;
     
-    // Debug логирование (можно включить через LOG_LEVEL=debug)
-    if (process.env.LOG_LEVEL === 'debug' && oldStateStr !== newStateStr) {
-      console.log(`[Device.updateState] ${id}: State changed`);
-      console.log('Old:', oldStateStr ? oldStateStr.substring(0, 100) + '...' : 'null');
-      console.log('New:', newStateStr ? newStateStr.substring(0, 100) + '...' : 'null');
-    }
-    
     // Если состояние не изменилось, только обновляем last_seen
     if (oldStateStr === newStateStr) {
       const updateTime = db.prepare('UPDATE devices SET last_seen = ? WHERE id = ?');
