@@ -146,41 +146,41 @@ export class MetadataService {
       throw new Error("WebSocket server not available");
     }
 
-    {
-      const device = wsServer.findDeviceById(deviceId);
+    // Получить имя ирригатора из конфигурации
+    const deviceFromDB = await import("./DeviceService.js").then((m) =>
+      m.DeviceService.getDevice(deviceId),
+    );
+    const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
+    const irrigatorName = irrigatorConfig?.name || irrigatorKey;
 
-      if (!device) {
-        throw new Error(`Device ${deviceId} not connected`);
-      }
+    // Отправить RPC команду Set.IrrigationTable через надежную очередь
+    const rpcParams = {
+      irrigator: irrigatorName,
+      reg_map: JSON.stringify(irrigationTable),
+    };
 
-      // Получить имя ирригатора из конфигурации
-      const deviceFromDB = await import("./DeviceService.js").then((m) =>
-        m.DeviceService.getDevice(deviceId),
+    try {
+      const connected = wsServer.isDeviceConnected(deviceId);
+      const result = await wsServer.callDevice(
+        deviceId,
+        "Set.IrrigationTable",
+        rpcParams,
+        {
+          timeoutMs: 5000,
+          stateChanging: true,
+          idempotent: true,
+          waitForExecution: connected,
+        },
       );
-      const irrigatorConfig = deviceFromDB?.config?.[irrigatorKey];
-      const irrigatorName = irrigatorConfig?.name || irrigatorKey;
 
-      // Отправить RPC команду Set.IrrigationTable
-      const rpcParams = {
-        irrigator: irrigatorName,
-        reg_map: JSON.stringify(irrigationTable),
-      };
-
-      try {
-        const result = await device.call(
-          "Set.IrrigationTable",
-          rpcParams,
-          5000,
-        );
-        saved.rpcResult = result;
-        saved.syncedToDevice = true;
-      } catch (err) {
-        saved.rpcError = err.message;
-        saved.syncedToDevice = false;
-        throw new Error(
-          `Failed to sync irrigation table to device: ${err.message}`,
-        );
-      }
+      saved.rpcResult = result;
+      saved.syncedToDevice = !result?.queued;
+      saved.queued = Boolean(result?.queued);
+      saved.queueInfo = result?.queued ? result : undefined;
+    } catch (err) {
+      saved.rpcError = err.message;
+      saved.syncedToDevice = false;
+      throw new Error(`Failed to sync irrigation table to device: ${err.message}`);
     }
 
     return saved;

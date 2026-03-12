@@ -123,7 +123,7 @@
       "patch": {
         "tags": ["Device"],
         "summary": "Обновить конфигурацию устройства",
-        "description": "Обновляет конфигурацию на ESP32 устройстве через RPC (Config.Set → Config.Save)",
+        "description": "Обновляет конфигурацию на ESP32 устройстве через RPC (Config.Set → Config.Save). Для offline устройства команда ставится в надежную очередь и возвращается 202.",
         "operationId": "updateDeviceConfig",
         "parameters": [
           {
@@ -155,6 +155,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Success"
+          },
+          "202": {
+            "$ref": "#/components/responses/AcceptedQueued"
           },
           "400": {
             "$ref": "#/components/responses/ValidationError"
@@ -244,7 +247,7 @@
       "post": {
         "tags": ["Device"],
         "summary": "Универсальный RPC вызов",
-        "description": "Выполняет произвольный RPC метод на устройстве",
+        "description": "Выполняет произвольный RPC метод на устройстве. Read-only методы (Get.*, Config.Get) требуют online устройства и вернут 503 при offline. Мутирующие методы отправляются через надежную очередь команд и могут вернуть 202, если выполнение отложено.",
         "operationId": "callDeviceMethod",
         "parameters": [
           {
@@ -314,8 +317,14 @@
               }
             }
           },
+          "202": {
+            "$ref": "#/components/responses/AcceptedQueued"
+          },
           "400": {
             "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -572,7 +581,7 @@
       "post": {
         "tags": ["Irrigators"],
         "summary": "Установить таблицу поливов",
-        "description": "Устанавливает таблицу поливов и параметры стратегии для ирригатора. Сохраняет в БД и синхронизирует с устройством через RPC метод Set.IrrigationTable.",
+        "description": "Устанавливает таблицу поливов и параметры стратегии для ирригатора. Сохраняет в БД и отправляет на устройство через надежную очередь команд Set.IrrigationTable. При offline устройства синхронизация откладывается.",
         "operationId": "setIrrigationTable",
         "parameters": [
           {
@@ -605,23 +614,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Irrigation table saved and synchronized with device"
-                    },
-                    "irrigationTable": {
-                      "$ref": "#/components/schemas/IrrigationTable"
-                    },
-                    "strategyParams": {
-                      "$ref": "#/components/schemas/StrategyParams"
-                    }
-                  }
+                  "$ref": "#/components/schemas/IrrigationTableSetResponse"
                 }
               }
             }
@@ -1040,6 +1033,68 @@
           }
         }
       },
+      "QueuedCommandData": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean",
+            "example": true
+          },
+          "deferred": {
+            "type": "boolean",
+            "example": true
+          },
+          "commandId": {
+            "type": "string",
+            "example": "esp32_A8A154-1710231123456-k3f9a7bc"
+          },
+          "queueLength": {
+            "type": "integer",
+            "example": 2
+          }
+        },
+        "required": ["queued", "commandId", "queueLength"]
+      },
+      "IrrigationTableSetResult": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean",
+            "example": true
+          },
+          "syncedToDevice": {
+            "type": "boolean",
+            "example": false
+          },
+          "queueInfo": {
+            "$ref": "#/components/schemas/QueuedCommandData"
+          },
+          "rpcResult": {
+            "type": "object",
+            "description": "Результат RPC или информация о постановке в очередь"
+          },
+          "rpcError": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "IrrigationTableSetResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Irrigation table saved and synchronized with device"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IrrigationTableSetResult"
+          }
+        }
+      },
       "ValidationErrorResponse": {
         "type": "object",
         "properties": {
@@ -1108,6 +1163,47 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ValidationErrorResponse"
+            }
+          }
+        }
+      },
+      "AcceptedQueued": {
+        "description": "Команда принята в очередь и будет исполнена при доступности устройства",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "queued": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Command queued and will be delivered when device reconnects"
+                },
+                "data": {
+                  "$ref": "#/components/schemas/QueuedCommandData"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Устройство недоступно (offline)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "success": false,
+              "error": "Device is offline"
             }
           }
         }

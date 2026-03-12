@@ -31,6 +31,16 @@ export class JSONRPCwsServerWithDB {
     // Связать broadcaster с DeviceService
     DeviceService.setBroadcaster(this.statusBroadcaster);
 
+    // Per-device очередь команд для надежной доставки в условиях нестабильной сети
+    this.commandQueues = new Map();
+    this.defaultCommandTimeoutMs = options.commandTimeoutMs || 5000;
+    this.defaultMaxRetries = options.commandMaxRetries || 3;
+    this.defaultRetryBaseDelayMs = options.commandRetryBaseDelayMs || 400;
+    this.commandQueueTtlMs = options.commandQueueTtlMs || 10 * 60 * 1000;
+    this.commandQueueMaxLength = options.commandQueueMaxLength || 500;
+    this.defaultWaitForExecutionTimeoutMs =
+      options.waitForExecutionTimeoutMs || 10000;
+
     // Подписка на события
     this._setupEventHandlers();
 
@@ -43,6 +53,346 @@ export class JSONRPCwsServerWithDB {
 
     // Периодический опрос состояния устройств
     this._startStatePolling();
+
+  }
+
+  _buildCommandId(deviceId) {
+    return `${deviceId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  _wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  _isDeviceConnected(device) {
+    return Boolean(device && device.ws?.readyState === 1);
+  }
+
+  _isRetryableError(err) {
+    const message = (err?.message || "").toLowerCase();
+    return (
+      message.includes("timeout") ||
+      message.includes("disconnected") ||
+      message.includes("socket not open") ||
+      message.includes("econnreset") ||
+      message.includes("broken pipe")
+    );
+  }
+
+  _isDeviceOfflineError(err) {
+    const message = (err?.message || "").toLowerCase();
+    return (
+      message.includes("device not connected") ||
+      message.includes("socket not open") ||
+      message.includes("disconnected")
+    );
+  }
+
+  _getQueue(deviceId) {
+    if (!this.commandQueues.has(deviceId)) {
+      this.commandQueues.set(deviceId, {
+        processing: false,
+        pending: [],
+        lastError: null,
+        processedCount: 0,
+      });
+    }
+
+    return this.commandQueues.get(deviceId);
+  }
+
+  _enqueueCommand(deviceId, command, { priority = "normal" } = {}) {
+    const queue = this._getQueue(deviceId);
+
+    if (queue.pending.length >= this.commandQueueMaxLength) {
+      throw new Error(
+        `Command queue is full for device ${deviceId} (max: ${this.commandQueueMaxLength})`,
+      );
+    }
+
+    const queuedCommand = {
+      ...command,
+      enqueuedAt: Date.now(),
+      expiresAt: Date.now() + (command.ttlMs || this.commandQueueTtlMs),
+      attempts: 0,
+      maxRetries: Number.isInteger(command.maxRetries)
+        ? command.maxRetries
+        : this.defaultMaxRetries,
+      retryBaseDelayMs: command.retryBaseDelayMs || this.defaultRetryBaseDelayMs,
+    };
+
+    if (priority === "high") {
+      queue.pending.unshift(queuedCommand);
+    } else {
+      queue.pending.push(queuedCommand);
+    }
+
+    return {
+      queueLength: queue.pending.length,
+      commandId: queuedCommand.commandId,
+    };
+  }
+
+  async _syncDeviceState(deviceId) {
+    const device = this.findDeviceById(deviceId);
+    if (!this._isDeviceConnected(device)) {
+      throw new Error(`Device not connected: ${deviceId}`);
+    }
+
+    const frame = await device.call("Get.State", {}, this.defaultCommandTimeoutMs);
+    DeviceService.updateDeviceState(deviceId, frame.result);
+    return frame.result;
+  }
+
+  async _executeQueuedCommand(deviceId, command) {
+    const maxAttempts = Math.max(1, command.maxRetries + 1);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      command.attempts = attempt;
+
+      const device = this.findDeviceById(deviceId);
+      if (!this._isDeviceConnected(device)) {
+        throw new Error(`Device not connected: ${deviceId}`);
+      }
+
+      const startTime = Date.now();
+      try {
+        const frame = await device.call(
+          command.method,
+          command.params || {},
+          command.timeoutMs || this.defaultCommandTimeoutMs,
+        );
+
+        if (frame?.error) {
+          throw new Error(
+            typeof frame.error === "string"
+              ? frame.error
+              : frame.error?.message || "RPC returned error",
+          );
+        }
+
+        let syncedState = null;
+        if (command.stateChanging || command.verifyState) {
+          syncedState = await this._syncDeviceState(deviceId);
+        }
+
+        if (command.verifyState) {
+          const isValid = await Promise.resolve(
+            command.verifyState({
+              state: syncedState,
+              result: frame?.result,
+              frame,
+            }),
+          );
+
+          if (!isValid) {
+            throw new Error("State verification failed after command execution");
+          }
+        }
+
+        deviceLogger.rpcResponse(
+          deviceId,
+          command.method,
+          true,
+          Date.now() - startTime,
+        );
+
+        return frame;
+      } catch (err) {
+        const retryable =
+          command.idempotent !== false &&
+          this._isRetryableError(err) &&
+          attempt < maxAttempts;
+
+        if (!retryable) {
+          throw err;
+        }
+
+        const backoffMs = Math.min(
+          15000,
+          command.retryBaseDelayMs * Math.pow(2, attempt - 1),
+        );
+
+        logger.warn("Retrying device command", {
+          deviceId,
+          method: command.method,
+          attempt,
+          maxAttempts,
+          backoffMs,
+          error: err.message,
+        });
+
+        await this._wait(backoffMs);
+      }
+    }
+
+    throw new Error(`Command failed after retries: ${command.method}`);
+  }
+
+  async _processDeviceQueue(deviceId) {
+    const queue = this._getQueue(deviceId);
+    if (queue.processing) return;
+
+    queue.processing = true;
+    try {
+      while (queue.pending.length > 0) {
+        const command = queue.pending[0];
+
+        if (Date.now() > command.expiresAt) {
+          queue.pending.shift();
+          queue.lastError = "Command expired in queue";
+          command.reject?.(new Error("Command expired in queue"));
+          continue;
+        }
+
+        try {
+          const frame = await this._executeQueuedCommand(deviceId, command);
+          queue.pending.shift();
+          queue.processedCount += 1;
+          queue.lastError = null;
+          command.resolve?.(frame);
+        } catch (err) {
+          const isOffline = this._isDeviceOfflineError(err);
+          queue.lastError = err.message;
+
+          if (isOffline) {
+            // Устройство оффлайн: оставляем команду в голове очереди до реконнекта.
+            break;
+          }
+
+          queue.pending.shift();
+          command.reject?.(err);
+          deviceLogger.error(deviceId, err, {
+            operation: "command_queue_execution",
+            method: command.method,
+            commandId: command.commandId,
+          });
+        }
+      }
+    } finally {
+      queue.processing = false;
+    }
+  }
+
+  /**
+   * Надежный вызов команды на устройстве с очередью, ретраями и восстановлением после реконнекта.
+   * @param {string} deviceId
+   * @param {string} method
+   * @param {Object} params
+   * @param {Object} options
+   */
+  async callDevice(deviceId, method, params = {}, options = {}) {
+    if (!deviceId) {
+      throw new Error("deviceId is required");
+    }
+    if (!method) {
+      throw new Error("method is required");
+    }
+
+    const commandId = options.commandId || this._buildCommandId(deviceId);
+
+    const command = {
+      commandId,
+      method,
+      params,
+      timeoutMs: options.timeoutMs,
+      stateChanging: options.stateChanging || false,
+      idempotent: options.idempotent !== false,
+      verifyState: options.verifyState,
+      maxRetries: options.maxRetries,
+      retryBaseDelayMs: options.retryBaseDelayMs,
+      ttlMs: options.ttlMs,
+    };
+
+    const executePromise = new Promise((resolve, reject) => {
+      command.resolve = resolve;
+      command.reject = reject;
+    });
+
+    const enqueueResult = this._enqueueCommand(deviceId, command, {
+      priority: options.priority,
+    });
+
+    // Попытаться обработать очередь сразу, если устройство уже online.
+    this._processDeviceQueue(deviceId).catch((err) => {
+      logger.error("Failed to process command queue", {
+        deviceId,
+        error: err.message,
+      });
+    });
+
+    if (options.waitForExecution === false) {
+      executePromise.catch((err) => {
+        logger.error("Queued command failed", {
+          deviceId,
+          method,
+          commandId,
+          error: err.message,
+        });
+      });
+
+      return {
+        queued: true,
+        commandId,
+        queueLength: enqueueResult.queueLength,
+      };
+    }
+
+    const waitTimeoutMs =
+      options.waitForExecutionTimeoutMs ?? this.defaultWaitForExecutionTimeoutMs;
+
+    if (!waitTimeoutMs || waitTimeoutMs <= 0) {
+      return executePromise;
+    }
+
+    const timeoutResult = await Promise.race([
+      executePromise,
+      this._wait(waitTimeoutMs).then(() => ({
+        queued: true,
+        deferred: true,
+        commandId,
+        queueLength: this._getQueue(deviceId).pending.length,
+      })),
+    ]);
+
+    if (timeoutResult?.queued) {
+      executePromise.catch((err) => {
+        logger.error("Deferred command failed", {
+          deviceId,
+          method,
+          commandId,
+          error: err.message,
+        });
+      });
+    }
+
+    return timeoutResult;
+  }
+
+  isDeviceConnected(deviceId) {
+    const device = this.findDeviceById(deviceId);
+    return this._isDeviceConnected(device);
+  }
+
+  getCommandQueueStats(deviceId = null) {
+    if (deviceId) {
+      const queue = this._getQueue(deviceId);
+      return {
+        deviceId,
+        processing: queue.processing,
+        pending: queue.pending.length,
+        lastError: queue.lastError,
+        processedCount: queue.processedCount,
+      };
+    }
+
+    return Array.from(this.commandQueues.entries()).map(([id, queue]) => ({
+      deviceId: id,
+      processing: queue.processing,
+      pending: queue.pending.length,
+      lastError: queue.lastError,
+      processedCount: queue.processedCount,
+    }));
   }
 
   /**
@@ -122,6 +472,13 @@ export class JSONRPCwsServerWithDB {
         .catch((err) => {
           deviceLogger.error(device.deviceId, err, { method: "Get.State" });
         });
+
+      // Если накопились команды во время оффлайна, запускаем очередь после реконнекта.
+      this._processDeviceQueue(device.deviceId).catch((err) => {
+        deviceLogger.error(device.deviceId, err, {
+          operation: "queue_resume_on_reconnect",
+        });
+      });
     } catch (err) {
       deviceLogger.error(device.deviceId, err, {
         operation: "device_connected",
@@ -329,6 +686,16 @@ export class JSONRPCwsServerWithDB {
     if (this.statusBroadcaster) {
       this.statusBroadcaster.close();
     }
+
+    // Завершить ожидающие команды
+    this.commandQueues.forEach((queue, deviceId) => {
+      queue.pending.forEach((command) => {
+        command.reject?.(new Error(`Server closed while command pending: ${deviceId}`));
+      });
+      queue.pending = [];
+      queue.processing = false;
+    });
+    this.commandQueues.clear();
 
     this.jsonrpc.close();
   }

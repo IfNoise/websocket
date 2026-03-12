@@ -1,5 +1,4 @@
 import "dotenv/config";
-import JSONRPCws from "./json-rpc-ws.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -57,11 +56,49 @@ const WS_PORT = process.env.WS_PORT || 8080;
 const STATUS_WS_PORT = process.env.STATUS_WS_PORT || 8081;
 const API_PORT = process.env.API_PORT || 3600;
 
+const COMMAND_TIMEOUT_MS = parseInt(process.env.COMMAND_TIMEOUT_MS, 10) || 5000;
+const COMMAND_MAX_RETRIES =
+  parseInt(process.env.COMMAND_MAX_RETRIES, 10) || 3;
+const COMMAND_RETRY_BASE_DELAY_MS =
+  parseInt(process.env.COMMAND_RETRY_BASE_DELAY_MS, 10) || 400;
+const COMMAND_QUEUE_TTL_MS =
+  parseInt(process.env.COMMAND_QUEUE_TTL_MS, 10) || 10 * 60 * 1000;
+const COMMAND_QUEUE_MAX_LENGTH =
+  parseInt(process.env.COMMAND_QUEUE_MAX_LENGTH, 10) || 500;
+const COMMAND_WAIT_EXEC_TIMEOUT_MS =
+  parseInt(process.env.COMMAND_WAIT_EXEC_TIMEOUT_MS, 10) || 10000;
+
 // Использование нового сервера с интеграцией БД
 const jsonrpcServer = new JSONRPCwsServerWithDB(WS_PORT, {
   statusPort: STATUS_WS_PORT,
+  commandTimeoutMs: COMMAND_TIMEOUT_MS,
+  commandMaxRetries: COMMAND_MAX_RETRIES,
+  commandRetryBaseDelayMs: COMMAND_RETRY_BASE_DELAY_MS,
+  commandQueueTtlMs: COMMAND_QUEUE_TTL_MS,
+  commandQueueMaxLength: COMMAND_QUEUE_MAX_LENGTH,
+  waitForExecutionTimeoutMs: COMMAND_WAIT_EXEC_TIMEOUT_MS,
 });
 const jsonrpc = jsonrpcServer.jsonrpc;
+
+function isReadOnlyMethod(method = "") {
+  const normalized = method.toLowerCase();
+  return normalized.startsWith("get.") || normalized.startsWith("config.get");
+}
+
+function isStateChangingMethod(method = "") {
+  const normalized = method.toLowerCase();
+  return (
+    normalized.startsWith("set.") ||
+    normalized.startsWith("toggle.") ||
+    normalized.startsWith("strategy.") ||
+    normalized.startsWith("config.set") ||
+    normalized.startsWith("config.save")
+  );
+}
+
+function isIdempotentMethod(method = "") {
+  return !method.toLowerCase().startsWith("toggle.");
+}
 
 function sendError(res, status, message) {
   apiLogger.error(new Error(message), { status });
@@ -156,12 +193,34 @@ api.post(
       return sendError(res, 400, "Invalid request payload");
     const { deviceId } = req.params;
     const { method, params } = req.body;
-    const device = jsonrpc.findDeviceById
-      ? jsonrpc.findDeviceById(deviceId)
-      : jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
-    if (!device) return sendError(res, 404, "Device not found");
     try {
-      const result = await device.call(method, params || {});
+      if (isReadOnlyMethod(method)) {
+        const device = jsonrpc.findDeviceById
+          ? jsonrpc.findDeviceById(deviceId)
+          : jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+        if (!device || !jsonrpcServer.isDeviceConnected(deviceId)) {
+          return sendError(res, 503, "Device is offline");
+        }
+
+        const result = await device.call(method, params || {});
+        return res.json(result);
+      }
+
+      const connected = jsonrpcServer.isDeviceConnected(deviceId);
+      const result = await jsonrpcServer.callDevice(deviceId, method, params || {}, {
+        stateChanging: isStateChangingMethod(method),
+        idempotent: isIdempotentMethod(method),
+        waitForExecution: connected,
+      });
+
+      if (result?.queued) {
+        return res.status(202).json({
+          queued: true,
+          ...result,
+          message: "Command queued and will be delivered after device reconnect",
+        });
+      }
+
       return res.json(result);
     } catch (err) {
       return sendError(res, 500, err.toString());
@@ -182,19 +241,56 @@ api.post(
       return sendError(res, 400, "Invalid request payload");
     const { deviceId } = req.params;
     const { reboot, params } = req.body;
-    const device = jsonrpc.findDeviceById
-      ? jsonrpc.findDeviceById(deviceId)
-      : jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
-    if (!device) return sendError(res, 404, "Device not found");
     try {
-      const setResult = await device.call(
+      const connected = jsonrpcServer.isDeviceConnected(deviceId);
+      const setResult = await jsonrpcServer.callDevice(
+        deviceId,
         "Config.Set",
         { config: params },
-        2000,
+        {
+          timeoutMs: 2000,
+          stateChanging: true,
+          idempotent: true,
+          waitForExecution: connected,
+        },
       );
+
+      if (setResult?.queued) {
+        return res.status(202).json({
+          queued: true,
+          ...setResult,
+          message: "Config.Set queued and will be applied after reconnect",
+        });
+      }
+
       if (setResult && setResult.error) return res.json(setResult);
-      device.config = setResult.result || device.config;
-      const saveResult = await device.call("Config.Save", { reboot });
+
+      const device = jsonrpc.findDeviceById
+        ? jsonrpc.findDeviceById(deviceId)
+        : jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      if (device) {
+        device.config = setResult.result || device.config;
+      }
+
+      const saveResult = await jsonrpcServer.callDevice(
+        deviceId,
+        "Config.Save",
+        { reboot },
+        {
+          stateChanging: true,
+          idempotent: true,
+          waitForExecution: connected,
+        },
+      );
+
+      if (saveResult?.queued) {
+        return res.status(202).json({
+          queued: true,
+          ...saveResult,
+          message: "Config.Save queued and will be applied after reconnect",
+        });
+      }
+
       if (saveResult && saveResult.error) return res.json(saveResult);
       // trigger device update in background
       device.update?.();

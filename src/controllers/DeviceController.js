@@ -1,6 +1,38 @@
 import { DeviceService } from "../services/DeviceService.js";
 import { apiLogger } from "../utils/logger.js";
 
+function resolveDevice(wsServer, deviceId) {
+  return wsServer.jsonrpc.findDeviceById
+    ? wsServer.jsonrpc.findDeviceById(deviceId)
+    : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+}
+
+function isReadOnlyMethod(method = "") {
+  const normalized = method.toLowerCase();
+  return (
+    normalized.startsWith("get.") ||
+    normalized.startsWith("config.get") ||
+    normalized === "ping"
+  );
+}
+
+function isStateChangingMethod(method = "") {
+  const normalized = method.toLowerCase();
+  return (
+    normalized.startsWith("set.") ||
+    normalized.startsWith("toggle.") ||
+    normalized.startsWith("strategy.") ||
+    normalized.startsWith("config.set") ||
+    normalized.startsWith("config.save")
+  );
+}
+
+function isIdempotentMethod(method = "") {
+  const normalized = method.toLowerCase();
+  if (normalized.startsWith("toggle.")) return false;
+  return true;
+}
+
 export class DeviceController {
   /**
    * Получить список всех подключенных устройств
@@ -53,9 +85,7 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const device = resolveDevice(wsServer, deviceId);
 
       if (!device) {
         return res.status(404).json({
@@ -91,9 +121,7 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const device = resolveDevice(wsServer, deviceId);
 
       if (!device) {
         return res.status(404).json({
@@ -134,9 +162,7 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const device = resolveDevice(wsServer, deviceId);
 
       if (!device) {
         return res.status(404).json({
@@ -174,49 +200,37 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const readOnly = isReadOnlyMethod(method);
+      const stateChanging = isStateChangingMethod(method);
 
-      if (!device) {
-        return res.status(404).json({
-          success: false,
-          error: "Device not found",
-        });
-      }
-
-      const result = await device.call(method, params || {});
-
-      // После команд, которые могут изменить состояние, обновить его
-      const stateChangingMethods = [
-        "Get.State",
-        "Set.Output",
-        "Set.Outputs",
-        "Toggle.Output",
-        "Strategy.Start",
-        "Strategy.Stop",
-        "Strategy.Pause",
-        "Strategy.Resume",
-      ];
-
-      if (
-        stateChangingMethods.some((m) =>
-          method.toLowerCase().includes(m.toLowerCase().split(".")[1]),
-        )
-      ) {
-        try {
-          // Получить актуальное состояние после изменения
-          const frame = await device.call("Get.State", {});
-          // frame = { id, result, error } - извлекаем только result
-          DeviceService.updateDeviceState(deviceId, frame.result);
-        } catch (err) {
-          // Ошибка получения состояния не критична
-          apiLogger.debug("Failed to update state after command", {
-            deviceId,
-            method,
-            error: err.message,
+      // Read-only вызовы не ставим в очередь: либо отвечаем быстро, либо честно возвращаем offline.
+      if (readOnly) {
+        const device = resolveDevice(wsServer, deviceId);
+        if (!device || !wsServer.isDeviceConnected(deviceId)) {
+          return res.status(503).json({
+            success: false,
+            error: "Device is offline",
           });
         }
+
+        const result = await device.call(method, params || {});
+        return res.json({ success: true, data: result });
+      }
+
+      const connected = wsServer.isDeviceConnected(deviceId);
+      const result = await wsServer.callDevice(deviceId, method, params || {}, {
+        stateChanging,
+        idempotent: isIdempotentMethod(method),
+        waitForExecution: connected,
+      });
+
+      if (result?.queued) {
+        return res.status(202).json({
+          success: true,
+          queued: true,
+          data: result,
+          message: "Command queued and will be delivered when device reconnects",
+        });
       }
 
       return res.json({ success: true, data: result });
@@ -281,29 +295,64 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const connected = wsServer.isDeviceConnected(deviceId);
 
-      if (!device) {
-        return res.status(404).json({
-          success: false,
-          error: "Device not found",
+      // Обновляем конфигурацию на устройстве через надежную очередь команд
+      const setResult = await wsServer.callDevice(
+        deviceId,
+        "Config.Set",
+        { config },
+        {
+          timeoutMs: 2000,
+          stateChanging: true,
+          waitForExecution: connected,
+          idempotent: true,
+        },
+      );
+
+      if (setResult?.queued) {
+        return res.status(202).json({
+          success: true,
+          queued: true,
+          data: setResult,
+          message: "Config.Set queued and will be applied after reconnect",
         });
       }
 
-      // Обновляем конфигурацию на устройстве
-      const setResult = await device.call("Config.Set", { config }, 2000);
       if (setResult && setResult.error) {
         return res.status(400).json({ success: false, error: setResult.error });
       }
 
-      device.config = setResult.result || device.config;
+      const currentDevice = resolveDevice(wsServer, deviceId);
+      if (currentDevice) {
+        currentDevice.config = setResult.result || currentDevice.config;
+      }
+
+      if (setResult?.result) {
+        DeviceService.updateDeviceConfig(deviceId, setResult.result);
+      }
 
       // Сохраняем конфигурацию
-      const saveResult = await device.call("Config.Save", {
-        reboot: reboot || false,
-      });
+      const saveResult = await wsServer.callDevice(
+        deviceId,
+        "Config.Save",
+        { reboot: reboot || false },
+        {
+          stateChanging: true,
+          waitForExecution: connected,
+          idempotent: true,
+        },
+      );
+
+      if (saveResult?.queued) {
+        return res.status(202).json({
+          success: true,
+          queued: true,
+          data: saveResult,
+          message: "Config.Save queued and will be applied after reconnect",
+        });
+      }
+
       if (saveResult && saveResult.error) {
         return res
           .status(400)
@@ -311,7 +360,7 @@ export class DeviceController {
       }
 
       // Обновляем устройство в фоне
-      device.update?.();
+      currentDevice?.update?.();
 
       return res.json({ success: true, message: "Config updated" });
     } catch (error) {
@@ -339,9 +388,7 @@ export class DeviceController {
         });
       }
 
-      const device = wsServer.jsonrpc.findDeviceById
-        ? wsServer.jsonrpc.findDeviceById(deviceId)
-        : wsServer.jsonrpc.getDevices().find((d) => d.deviceId === deviceId);
+      const device = resolveDevice(wsServer, deviceId);
 
       if (!device) {
         return res.status(404).json({
